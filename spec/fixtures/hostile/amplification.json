@@ -1,0 +1,76 @@
+{
+  "description": "Volume, which is the abuse this product is most likely to actually commit. Nothing in urls.json, resolutions.json or redirect-chains.json is about a URL that is wrong to fetch — every case here is about a URL that is perfectly fine to fetch ONCE and ruinous to fetch a thousand times on somebody else's behalf.",
+  "notes": [
+    "Two limits are being separated, and conflating them is how a service ends up believing it is protected when it is not. The per-TARGET politeness window bounds how often one endpoint is touched, however many people ask. The whole-service daily ceiling bounds the TOTAL, however many different endpoints are named. The first does nothing about the second: a different endpoint id is a different Durable Object with a fresh window.",
+    "`outbound` is the number of requests the connector should see. It is the only number an endpoint operator cares about, and it is what these rows assert.",
+    "The per-caller budget is deliberately NOT the mechanism under test in the concurrency rows. It is keyed by a salt generated per isolate (worker/routes/inspect.ts), so it resets on a cold isolate and is not a global quantity — the rows below give every caller a distinct key precisely so that a pass cannot be credited to it."
+  ],
+  "cases": [
+    {
+      "id": "one-target-many-anonymous-callers",
+      "kind": "concurrent_same_target",
+      "callers": 100,
+      "distinct_caller_keys": false,
+      "targets": 1,
+      "outbound": 1,
+      "note": "A hundred people paste the same URL in the same instant. A plain rate limiter passes all hundred, because none of them has finished when the others arrive — so `reserve` is single-flight and everybody after the first parks on the leader's result. One outbound request."
+    },
+    {
+      "id": "one-target-many-distinct-callers",
+      "kind": "concurrent_same_target",
+      "callers": 50,
+      "distinct_caller_keys": true,
+      "targets": 1,
+      "outbound": 1,
+      "note": "The same, with fifty different caller keys so the per-caller budget cannot be what is doing the work. This is the row that proves the collapse is a property of the TARGET's object rather than a side effect of rate-limiting people."
+    },
+    {
+      "id": "one-expensive-target-many-callers",
+      "kind": "concurrent_same_target",
+      "callers": 25,
+      "distinct_caller_keys": true,
+      "targets": 1,
+      "expensive": true,
+      "outbound": 1,
+      "note": "The target is the slow one — it trickles bytes and never finishes, so the leader's probe runs until the total timeout. Followers must still collapse onto it rather than each starting their own doomed request, and they must not be made to wait out the follower timeout when it fails."
+    },
+    {
+      "id": "many-distinct-targets-one-caller",
+      "kind": "sequential_distinct_targets",
+      "callers": 1,
+      "targets": 12,
+      "daily_limit": 4,
+      "outbound": 4,
+      "note": "THE ROW THE PER-TARGET WINDOW NEVER COVERED. One caller walking a list of twelve different URLs gets twelve fresh politeness windows and, before the whole-service ceiling existed, twelve outbound requests. The ceiling is what makes the total a number instead of a function of how much the caller wants to spend. `daily_limit` is lowered for the test; production is MAX_ON_DEMAND_PROBES_PER_DAY."
+    },
+    {
+      "id": "many-distinct-targets-many-callers",
+      "kind": "concurrent_distinct_targets",
+      "callers": 20,
+      "targets": 20,
+      "daily_limit": 5,
+      "outbound": 5,
+      "note": "The distributed version: twenty callers, a different target each, all at once. Neither the per-target window nor the per-caller budget constrains this at all — every caller is under its own limit and every target is being touched once. Only the global ceiling does."
+    },
+    {
+      "id": "crawler-does-not-spend-the-public-allowance",
+      "kind": "sequential_distinct_targets",
+      "callers": 1,
+      "targets": 6,
+      "daily_limit": 2,
+      "on_demand": false,
+      "outbound": 6,
+      "note": "The crawler's probes are bounded by the fixed per-cycle budget in worker/crawler/schedule.ts, not by the public allowance, so the two add rather than compete. If they shared, a busy crawl day would deny the Inspector to people — and the published worst case would be the maximum of the two rather than their sum, which is the wrong arithmetic in the safe direction and therefore the kind nobody checks."
+    },
+    {
+      "id": "cache-hits-are-free",
+      "kind": "sequential_same_target",
+      "callers": 5,
+      "targets": 1,
+      "daily_limit": 5,
+      "outbound": 1,
+      "spent": 1,
+      "note": "Five requests for one endpoint inside its window: one outbound request and exactly one unit of the daily allowance. A ceiling charged per REQUEST rather than per PROBE would exhaust the day's budget on traffic that never left the building, which would make the busiest legitimate day look like an attack."
+    }
+  ]
+}

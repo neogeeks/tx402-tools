@@ -20,10 +20,20 @@ import { page, pageHead } from "../../ui/components/page.js";
 import { kvTable } from "../../ui/components/kv-table.js";
 import { OPTOUT_WELL_KNOWN } from "../crawler/optout.js";
 import { CRAWLER_UA_TOKEN } from "../crawler/robots.js";
+import { maxProbesPerDay } from "../crawler/schedule.js";
 import { MAX_PROBES_PER_CYCLE, TIER_INTERVAL_MINUTES } from "../crawler/types.js";
 import type { RouteContext, RouteHandler } from "../types.js";
 
 export { optout } from "./optout.js";
+
+/**
+ * The daily ceiling, derived from the schedule rather than restated.
+ *
+ * This page is the promise an endpoint operator holds us to, so the figure on
+ * it has to be the figure the code enforces. `MAX_PROBES_PER_CYCLE × 96` was
+ * not: one tick a day is the seed refresh and gets half the budget.
+ */
+const MAX_PROBES_PER_DAY = maxProbesPerDay(MAX_PROBES_PER_CYCLE);
 
 const TITLE = "What the x402 crawler does, and how to stop it";
 const SUMMARY =
@@ -90,7 +100,7 @@ export const crawlerInfo: RouteHandler = async (ctx: RouteContext): Promise<Resp
     limits: {
       max_probes_per_cycle: MAX_PROBES_PER_CYCLE,
       cycle_minutes: 15,
-      max_probes_per_day: MAX_PROBES_PER_CYCLE * 96,
+      max_probes_per_day: MAX_PROBES_PER_DAY,
       one_live_probe_per_endpoint_per_window: true,
     },
     never: [
@@ -135,7 +145,7 @@ export const crawlerInfo: RouteHandler = async (ctx: RouteContext): Promise<Resp
         "## Rate limits",
         "",
         `- At most **${MAX_PROBES_PER_CYCLE} probes per 15-minute cycle** across the whole corpus ` +
-          `(≤ ${MAX_PROBES_PER_CYCLE * 96}/day, whatever its size).`,
+          `(≤ ${MAX_PROBES_PER_DAY}/day, whatever its size).`,
         "- One live probe per endpoint per politeness window, however many people ask.",
         `- Re-probe cadence: active ${TIER_INTERVAL_MINUTES.active} min · ` +
           `corpus ${TIER_INTERVAL_MINUTES.corpus} min · dormant ${TIER_INTERVAL_MINUTES.cold} min.`,
@@ -169,7 +179,7 @@ export const crawlerInfo: RouteHandler = async (ctx: RouteContext): Promise<Resp
     kvTable(
       [
         { label: "Probes per 15-minute cycle", value: `at most ${MAX_PROBES_PER_CYCLE}` },
-        { label: "Probes per day (whole corpus)", value: `at most ${MAX_PROBES_PER_CYCLE * 96}` },
+        { label: "Probes per day (whole corpus)", value: `at most ${MAX_PROBES_PER_DAY}` },
         { label: "Per endpoint", value: "one live probe per politeness window, however many people ask" },
         { label: "Recently viewed", value: `every ${TIER_INTERVAL_MINUTES.active} minutes` },
         { label: "Corpus", value: `every ${TIER_INTERVAL_MINUTES.corpus} minutes` },

@@ -40,7 +40,18 @@ export default tseslint.config(
     // plain Node ESM.
     files: ["scripts/**/*.mjs", "spec/fixtures/*.mjs", "packages/**/bin/*.mjs"],
     ...tseslint.configs.disableTypeChecked,
-    languageOptions: { globals: { process: "readonly", console: "readonly", Buffer: "readonly" } },
+    // `fetch`, `performance` and `setTimeout` are for scripts/load-test.mjs,
+    // which is an HTTP client with a clock and needs all three.
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        Buffer: "readonly",
+        fetch: "readonly",
+        performance: "readonly",
+        setTimeout: "readonly",
+      },
+    },
   },
   {
     files: ["test/**/*.ts", "vitest.config.ts", "eslint.config.js"],

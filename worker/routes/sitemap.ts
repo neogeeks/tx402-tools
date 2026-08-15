@@ -53,7 +53,7 @@ function toolPaths(): string[] {
  * goes live rather than the wave after. If slips, the URL 501s and a
  * crawler drops it — which is the correct behaviour and not a broken sitemap.
  */
-const STATIC_PAGES = ["/methodology", "/crawler", "/errors"];
+const STATIC_PAGES = ["/methodology", "/crawler", "/errors", "/privacy"];
 
 export function sitemapUrls(): string[] {
   return [

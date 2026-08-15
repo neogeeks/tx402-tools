@@ -29,6 +29,30 @@
  * The cached *probe result* is a different thing and is deliberately shared: a
  * challenge is public data the endpoint serves to anyone who asks, and sharing
  * it is exactly how one probe answers many questions.
+ *
+ * ── The second budget, and why the first one was not a bound ────────────────
+ *
+ * Everything above is per ENDPOINT. It makes "a thousand people paste the same
+ * URL" cost one outbound request, and it says nothing whatsoever about "one
+ * person pastes a thousand different URLs" — a different endpoint id is a
+ * different object with a fresh window, so the per-target window is not a cap
+ * on total volume, it is a cap on volume *per target*. The per-caller budget
+ * did not close that either: it is keyed by a salt generated per isolate
+ * (`worker/routes/inspect.ts`), so it resets whenever a request lands on a cold
+ * isolate and is not a global quantity at all.
+ *
+ * So the total outbound volume from the on-demand surface was unbounded, and
+ * `docs/cost-model.md` could not put a number on the row that matters most.
+ * `/admit` is the fix: ONE object (`GLOBAL_BUDGET_NAME`) holds a daily ceiling
+ * on probes that a member of the public can cause, and a probe that cannot be
+ * admitted is refused with the cached result still available. The crawler does
+ * not draw on it — its ceiling is the fixed per-cycle budget in
+ * `worker/crawler/schedule.ts` — so the two are added rather than multiplied,
+ * and the sum is the number published in the cost model.
+ *
+ * It is consulted only once leadership has been granted, so a cache hit costs
+ * nothing here and the object's request rate is the outbound probe rate plus
+ * refusals, never the read rate of the site.
  */
 
 import type { Env } from "../types.js";
@@ -53,6 +77,22 @@ export interface ReserveRequest {
   no_wait?: boolean;
 }
 
+export interface AdmitRequest {
+  /** Probes to charge. One, unless a caller ever batches — it never does today. */
+  cost?: number;
+  /** Ceiling override, so a test does not have to spend 5,000 admissions. */
+  limit?: number;
+}
+
+export interface AdmitResponse {
+  admitted: boolean;
+  /** Admissions left in the current UTC day, after this one. */
+  remaining: number;
+  limit: number;
+  /** Epoch ms at which the counter rolls. Also the retry-after basis. */
+  reset_at: number;
+}
+
 export interface ReserveResponse {
   /** True ⇒ you are the leader and must call `record` or `release`. */
   allowed: boolean;
@@ -74,12 +114,54 @@ interface CallerBucket {
   reset_at: number;
 }
 
+/** The whole-service on-demand budget, held in one object under this name. */
+interface GlobalBudget {
+  /** UTC day, `YYYY-MM-DD`. A different day is a different budget. */
+  day: string;
+  spent: number;
+}
+
 /** "N minutes". Ten is polite without making the tool feel stale. */
 const DEFAULT_WINDOW_SECONDS = 600;
 const DEFAULT_CALLER_LIMIT = 30;
 const DEFAULT_CALLER_WINDOW_SECONDS = 60;
 /** How long a follower waits for the leader before giving up and being told to retry. */
 const MAX_WAIT_MS = 15_000;
+
+/**
+ * The single object that holds the on-demand budget.
+ *
+ * An endpoint id is 32 lowercase hex characters (SPEC §1.5), so no endpoint can
+ * ever be routed to this name. It is not merely unlikely; it is unrepresentable.
+ */
+export const GLOBAL_BUDGET_NAME = "__on_demand_budget__";
+
+/**
+ * Outbound probes per UTC day that the public can cause, in total.
+ *
+ * The arithmetic behind the number is in `docs/cost-model.md`; the short version
+ * is that it is comfortably above any plausible real day (the busiest measured
+ * hour on the live service was 145 scans) and far enough below every metered
+ * ceiling that the worst case is affordable rather than merely survivable. It
+ * is a constant for the same reason the crawler's per-cycle budget is: a fixed
+ * ceiling makes the worst case a multiplication anybody can check, and an
+ * adaptive one makes a busy day into a bigger bill.
+ *
+ * Exhausting it degrades the service to "cached results only" for the rest of
+ * the day. That is a bad day. It is not an unbounded invoice, and it is not
+ * somebody else's API being hammered on our behalf.
+ */
+export const MAX_ON_DEMAND_PROBES_PER_DAY = 5_000;
+
+/** UTC day key. Deliberately not locale-aware — the reset must be one instant. */
+function utcDay(now: number): string {
+  return new Date(now).toISOString().slice(0, 10);
+}
+
+/** Epoch ms of the next UTC midnight, which is when the budget rolls. */
+function nextUtcMidnight(now: number): number {
+  return Date.parse(`${utcDay(now)}T00:00:00Z`) + 86_400_000;
+}
 
 export class ProbeLimiter implements DurableObject {
   /**
@@ -92,6 +174,20 @@ export class ProbeLimiter implements DurableObject {
     settle: (entry: CacheEntry | null) => void;
     startedAt: number;
   } | null = null;
+
+  /**
+   * Serializes the daily-budget read-modify-write. See `admit`.
+   *
+   * A rejected link would poison every later admission, so nothing on this chain
+   * is allowed to reject: `admitLocked` returns a refusal rather than throwing,
+   * and the `catch` is the belt to that brace.
+   */
+  private budgetChain: Promise<AdmitResponse> = Promise.resolve({
+    admitted: false,
+    remaining: 0,
+    limit: 0,
+    reset_at: 0,
+  });
 
   constructor(
     private readonly state: DurableObjectState,
@@ -113,6 +209,10 @@ export class ProbeLimiter implements DurableObject {
               ),
             ),
           );
+        case "/admit":
+          return Response.json(await this.admit(await this.body<AdmitRequest>(request)));
+        case "/budget":
+          return Response.json(await this.budget());
         case "/release":
           return Response.json(await this.release());
         case "/peek":
@@ -191,13 +291,22 @@ export class ProbeLimiter implements DurableObject {
         };
       }
 
+      // The wait timer is CLEARED when the leader wins the race. Leaving it
+      // pending would keep this object ineligible for hibernation for the
+      // remaining wait — up to 15 seconds of billed duration after the work
+      // finished, per follower, on an object charged for a full 128 MB whether
+      // it uses it or not. That is a cost bug rather than a correctness one,
+      // which is exactly the kind that survives a passing test suite.
       const leader = this.inFlight;
+      let timer: ReturnType<typeof setTimeout> | undefined;
       const entry = await Promise.race([
         leader.promise,
-        new Promise<"timeout">((resolve) =>
-          setTimeout(() => resolve("timeout"), MAX_WAIT_MS),
-        ),
-      ]);
+        new Promise<"timeout">((resolve) => {
+          timer = setTimeout(() => resolve("timeout"), MAX_WAIT_MS);
+        }),
+      ]).finally(() => {
+        if (timer !== undefined) clearTimeout(timer);
+      });
 
       if (entry === "timeout" || entry === null) {
         return {
@@ -231,6 +340,90 @@ export class ProbeLimiter implements DurableObject {
       cache_age_seconds: null,
       retry_after_seconds: null,
       reason: "leader",
+    };
+  }
+
+  // ── the global on-demand budget ─────────────────────────────────────────
+
+  /**
+   * Charge one probe against the whole-service daily ceiling.
+   *
+   * Only ever called on the object named `GLOBAL_BUDGET_NAME`, and only after a
+   * caller has already won leadership for its endpoint — so the call rate here
+   * is the outbound probe rate plus whatever a flood adds, never the site's read
+   * rate. The counter lives in storage rather than in memory because an
+   * evicted object with an in-memory counter has a budget that resets whenever
+   * Cloudflare feels like it, which is not a budget.
+   *
+   * The write is the expensive part (one DO SQLite row write per admission), and
+   * it is bounded by the ceiling itself: at most `limit` writes per day plus one
+   * per refusal. Refusals do not write — they read and return — so a flood after
+   * exhaustion costs reads, not writes.
+   */
+  private admit(input: AdmitRequest): Promise<AdmitResponse> {
+    // Serialized explicitly, not by trusting the runtime.
+    //
+    // `admit` is a read-modify-write, and twenty concurrent callers that each
+    // read `spent` before any of them writes it all see room and are all
+    // admitted — a ceiling of five that lets twenty through. Durable Objects do
+    // have an input gate that would very likely prevent this, but "very likely,
+    // by a runtime behaviour we did not test against" is not the footing for the
+    // one mechanism that turns an unbounded bill into a bounded one. Chaining
+    // the mutations makes the guarantee this object's own, and it is what the
+    // `many-distinct-targets-many-callers` row in
+    // spec/fixtures/hostile/amplification.json actually caught.
+    const next = this.budgetChain.then(
+      () => this.admitLocked(input),
+      () => this.admitLocked(input),
+    );
+    // Kept unrejectable so one failed admission cannot wedge the day's budget.
+    this.budgetChain = next.catch(() => ({
+      admitted: false,
+      remaining: 0,
+      limit: input.limit ?? MAX_ON_DEMAND_PROBES_PER_DAY,
+      reset_at: nextUtcMidnight(this.now()),
+    }));
+    return next;
+  }
+
+  private async admitLocked(input: AdmitRequest): Promise<AdmitResponse> {
+    const limit = input.limit ?? MAX_ON_DEMAND_PROBES_PER_DAY;
+    const cost = Math.max(1, Math.floor(input.cost ?? 1));
+    const now = this.now();
+    const day = utcDay(now);
+    const resetAt = nextUtcMidnight(now);
+
+    const stored = await this.state.storage.get<GlobalBudget>("budget");
+    const budget: GlobalBudget =
+      stored && stored.day === day ? stored : { day, spent: 0 };
+
+    if (budget.spent + cost > limit) {
+      return { admitted: false, remaining: Math.max(0, limit - budget.spent), limit, reset_at: resetAt };
+    }
+
+    budget.spent += cost;
+    await this.state.storage.put("budget", budget);
+    return { admitted: true, remaining: limit - budget.spent, limit, reset_at: resetAt };
+  }
+
+  /**
+   * Today's spend, without charging for the question.
+   *
+   * `/api/v1/health` calls this, so a reader can check the published ceiling
+   * against the running service instead of taking `docs/cost-model.md` on
+   * trust. It reads and never writes, which is what makes it safe to expose on
+   * an unauthenticated endpoint.
+   */
+  private async budget(): Promise<AdmitResponse> {
+    const now = this.now();
+    const day = utcDay(now);
+    const stored = await this.state.storage.get<GlobalBudget>("budget");
+    const spent = stored && stored.day === day ? stored.spent : 0;
+    return {
+      admitted: false,
+      remaining: Math.max(0, MAX_ON_DEMAND_PROBES_PER_DAY - spent),
+      limit: MAX_ON_DEMAND_PROBES_PER_DAY,
+      reset_at: nextUtcMidnight(now),
     };
   }
 

@@ -1,0 +1,162 @@
+{
+  "description": "Redirect chains whose hostile hop is not the first one. urls.json's redirect rows all turn bad immediately, which tests that hop 1 is checked and says nothing about hop 3 — and a guard that validates the URL it was given and then follows Location headers with the platform's redirect handling passes every one of those rows while being completely open.",
+  "notes": [
+    "`hops` is the response served for each request in order. A hop with a `location` is a redirect; the final hop is the real response. Hostnames resolve as declared in `resolver`, which is merged over the default table in test/net-stubs.ts.",
+    "`connects` is how many requests the connector should have seen when the chain ends. It is the assertion that matters: the refusal must happen BEFORE the hostile hop is requested, not after.",
+    "worker/lib/guard.ts caps the chain at GUARD_LIMITS.maxRedirects (3) and re-validates each hop from scratch — userinfo, scheme, literal address, then resolution — so every property urls.json checks on hop 0 is checked again on every hop."
+  ],
+  "cases": [
+    {
+      "id": "private-only-on-last-hop",
+      "url": "https://chain.example.net/a",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [
+        { "path": "/a", "status": 302, "location": "https://chain.example.net/b" },
+        { "path": "/b", "status": 302, "location": "https://chain.example.net/c" },
+        { "path": "/c", "status": 302, "location": "https://10.0.0.5/admin" }
+      ],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 3,
+      "note": "Three entirely ordinary public hops, then the private one. Every hop before it was fetched — which is correct and is exactly why the check has to run on all of them rather than on the URL the caller supplied."
+    },
+    {
+      "id": "metadata-only-on-last-hop-encoded",
+      "url": "https://chain.example.net/enc-a",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [
+        { "path": "/enc-a", "status": 302, "location": "https://chain.example.net/enc-b" },
+        { "path": "/enc-b", "status": 307, "location": "https://0xa9fea9fe/latest/meta-data/" }
+      ],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 2,
+      "note": "The last hop is the metadata service written in hex. Both defences have to hold at once on a redirect target: the alternate-encoding parse AND the per-hop re-validation. Also a 307 rather than a 302, because a guard that only recognises 301/302 stops following at the interesting moment and reports success."
+    },
+    {
+      "id": "private-by-name-on-last-hop",
+      "url": "https://chain.example.net/name-a",
+      "resolver": {
+        "chain.example.net": ["93.184.216.34"],
+        "internal-only.example.net": ["172.16.4.9"]
+      },
+      "hops": [
+        { "path": "/name-a", "status": 302, "location": "https://chain.example.net/name-b" },
+        { "path": "/name-b", "status": 302, "location": "https://internal-only.example.net/x" }
+      ],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 2,
+      "note": "The last hop is a perfectly ordinary NAME that happens to resolve into RFC1918. The literal check on the Location header does not catch this; only re-resolving the new host does."
+    },
+    {
+      "id": "rebind-on-a-redirect-target",
+      "url": "https://chain.example.net/rb-a",
+      "resolver": {
+        "chain.example.net": ["93.184.216.34"],
+        "rebind-hop.example.net": [["93.184.216.34"], ["127.0.0.1"]]
+      },
+      "hops": [{ "path": "/rb-a", "status": 302, "location": "https://rebind-hop.example.net/x" }],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 1,
+      "note": "Rebinding and redirection composed. The double lookup has to happen on every hop, not only on the URL the caller handed us — a guard that resolves twice for hop 0 and once per hop afterwards is open here."
+    },
+    {
+      "id": "userinfo-smuggled-in-a-location",
+      "url": "https://chain.example.net/ui-a",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [
+        { "path": "/ui-a", "status": 302, "location": "https://user:secret@chain.example.net/ui-b" }
+      ],
+      "expect": "reject",
+      "code": "URL_USERINFO_PRESENT",
+      "connects": 1,
+      "note": "Credentials introduced by the SERVER rather than by the caller. The URL we were given was clean; the one we were told to go to is not, and it is re-validated from scratch."
+    },
+    {
+      "id": "downgrade-only-on-last-hop",
+      "url": "https://chain.example.net/dg-a",
+      "resolver": {
+        "chain.example.net": ["93.184.216.34"],
+        "plain.example.net": ["198.51.100.9"]
+      },
+      "hops": [
+        { "path": "/dg-a", "status": 302, "location": "https://chain.example.net/dg-b" },
+        { "path": "/dg-b", "status": 302, "location": "http://plain.example.net/x" }
+      ],
+      "expect": "reject",
+      "code": "URL_BLOCKED",
+      "connects": 2,
+      "note": "A downgrade to a genuinely public host. Still refused: an http hop is a channel we can make no statement about, and the report says things about TLS."
+    },
+    {
+      "id": "protocol-relative-into-private",
+      "url": "https://chain.example.net/pr-a",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [{ "path": "/pr-a", "status": 302, "location": "//192.168.1.1/x" }],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 1,
+      "note": "A scheme-relative Location. It inherits https from the current URL, so it is not a downgrade — it is a host change that a check looking for `http://` in the header would not see at all."
+    },
+    {
+      "id": "relative-location-stays-public",
+      "url": "https://chain.example.net/rel-a",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [
+        { "path": "/rel-a", "status": 302, "location": "../rel-b" },
+        { "path": "/rel-b", "status": 402, "body": "{}" }
+      ],
+      "expect": "allow",
+      "code": null,
+      "connects": 2,
+      "note": "An ordinary relative redirect, resolved against the current URL and staying on the same public host. It must go through: over-blocking redirects would break a large share of real endpoints."
+    },
+    {
+      "id": "exactly-at-the-hop-limit",
+      "url": "https://chain.example.net/lim-1",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [
+        { "path": "/lim-1", "status": 302, "location": "https://chain.example.net/lim-2" },
+        { "path": "/lim-2", "status": 302, "location": "https://chain.example.net/lim-3" },
+        { "path": "/lim-3", "status": 302, "location": "https://chain.example.net/lim-4" },
+        { "path": "/lim-4", "status": 402, "body": "{}" }
+      ],
+      "expect": "allow",
+      "code": null,
+      "connects": 4,
+      "note": "Three redirects is the documented maximum and must be allowed. The boundary is tested from both sides because an off-by-one here is either a broken product or a longer chain than the policy promises."
+    },
+    {
+      "id": "one-hop-over-the-limit",
+      "url": "https://chain.example.net/over-1",
+      "resolver": { "chain.example.net": ["93.184.216.34"] },
+      "hops": [
+        { "path": "/over-1", "status": 302, "location": "https://chain.example.net/over-2" },
+        { "path": "/over-2", "status": 302, "location": "https://chain.example.net/over-3" },
+        { "path": "/over-3", "status": 302, "location": "https://chain.example.net/over-4" },
+        { "path": "/over-4", "status": 302, "location": "https://chain.example.net/over-5" }
+      ],
+      "expect": "reject",
+      "code": "TOO_MANY_REDIRECTS",
+      "connects": 4,
+      "note": "The fourth redirect is refused. Note the chain is not a loop — a hop limit that only catches self-referential loops does not bound a chain of distinct URLs, and it is the count that costs us, not the repetition."
+    },
+    {
+      "id": "oversized-body-behind-a-clean-chain",
+      "url": "https://chain.example.net/big-a",
+      "resolver": {
+        "chain.example.net": ["93.184.216.34"],
+        "slowloris.example.net": ["93.184.216.34"]
+      },
+      "hops": [
+        { "path": "/big-a", "status": 302, "location": "https://slowloris.example.net/huge" }
+      ],
+      "expect": "reject",
+      "code": "RESPONSE_TOO_LARGE",
+      "connects": 2,
+      "note": "The response caps are not bypassed by arriving via a redirect. Worth a row because the caps are applied to the terminal response, and the terminal response is the one whose URL nobody validated by hand."
+    }
+  ]
+}

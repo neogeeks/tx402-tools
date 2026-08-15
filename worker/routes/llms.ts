@@ -194,7 +194,12 @@ export const llmsTxt: RouteHandler = (ctx: RouteContext): Response => {
     "- **An endpoint we have never seen returns NO_DATA**, not a low score. Unknown is not bad.",
     `- **Operators can claim an endpoint, correct a fact, or opt out**: [${origin}/crawler](${origin}/crawler).`,
     "- Probes are rate-limited per target, not per caller, so a cached answer says `cached: true` and",
-    "  gives its age rather than pretending to be live.",
+    "  gives its age rather than pretending to be live. There is also a whole-service daily ceiling on",
+    "  probes the public can cause; past it, cached answers are still served and fresh ones are refused",
+    `  with RATE_LIMITED. Both limits, and what they cost: [${origin}/api/v1/health](${origin}/api/v1/health).`,
+    "- **Nobody is identified anywhere in this product.** No accounts, no sign-in, no cookies, no visitor",
+    "  identifier, and no IP address stored in any form — there is no table in the schema in which a",
+    `  person could be stored. [${origin}/privacy](${origin}/privacy).`,
     "",
   );
 
@@ -218,6 +223,7 @@ export const llmsTxt: RouteHandler = (ctx: RouteContext): Response => {
     `- [Payment discovery manifest](${origin}/.well-known/x402.json): what this service charges, which is`,
     "  nothing — an empty `accepts`, stated in the format a payment client already parses.",
     `- [Crawler policy](${origin}/robots.txt) · [Security contact](${origin}/.well-known/security.txt)`,
+    `- [Privacy policy](${origin}/privacy) · [Crawler and opt-out](${origin}/crawler)`,
   );
 
   return text(lines.join("\n"), "text/plain; charset=utf-8");

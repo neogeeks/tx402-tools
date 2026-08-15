@@ -91,7 +91,8 @@ export function stripMarkdownSuffix(pathname: string): string {
  * API mirror sits at exactly that path and wrong for everything else. We found
  * it live: **six of eleven negotiated page routes advertised a JSON alternate
  * that 404s** — `/policy`, `/compare/:category`, `/replay`, `/errors`,
- * `/crawler` and `/methodology`.
+ * `/crawler` and `/methodology`. `/privacy` joined the list when it shipped —
+ * it is a document, not a view over data.
  *
  * That is a quiet failure with a loud consequence. The whole of
  * exists so an agent never has to scrape HTML; an agent doing the *correct*
@@ -116,7 +117,7 @@ function jsonMirrorFor(page: string, query: string): string | null {
   // Pages that are documents rather than views over data. `/replay` is here
   // deliberately: `/api/v1/replay/:id` and `/api/v1/replay/share` exist, but
   // neither is a mirror of this page — one is a lookup and one is a write.
-  const NO_JSON_MIRROR = new Set(["/replay", "/errors", "/crawler", "/methodology"]);
+  const NO_JSON_MIRROR = new Set(["/replay", "/errors", "/crawler", "/methodology", "/privacy"]);
   if (NO_JSON_MIRROR.has(page)) return null;
 
   return `/api/v1${page}${query}`;
