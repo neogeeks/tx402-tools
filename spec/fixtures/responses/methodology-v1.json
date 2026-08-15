@@ -1,0 +1,378 @@
+{
+  "api_version": "v1",
+  "tool": "methodology",
+  "generated_at": "2026-08-15T12:00:00Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": "v1",
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/methodology"
+  },
+  "warnings": [],
+  "data": {
+    "score_version": "v1",
+    "total_available_weight": 109,
+    "coverage_floor_percent": 50,
+    "signals": [
+      {
+        "signal_id": "challenge_decodes",
+        "weight": 25,
+        "severity": "fail",
+        "share": 0.22935779816513763,
+        "passes_when": "The strict x402 decoder accepts the challenge",
+        "rationale": "The single most load-bearing fact available. This is the same `decodePaymentRequired` the tx402 SDK runs *before it will pay*, so a failure here means a tx402 buyer cannot transact with this endpoint at all. Nothing else we check outranks \"it does not work\".",
+        "on_pass": "The challenge decodes under the strict x402 decoder tx402 uses before paying.",
+        "on_fail": "The challenge does not decode under the strict x402 decoder tx402 uses before paying."
+      },
+      {
+        "signal_id": "resource_origin_match",
+        "weight": 15,
+        "severity": "fail",
+        "share": 0.13761467889908258,
+        "passes_when": "The challenge's `resource` origin equals the probed origin",
+        "rationale": "A 402 describing somebody else's resource is the shape of a payment-redirection bug: you ask A for a price and are handed B's invoice. Highest-severity thing we can see in a single observation.",
+        "on_pass": "The challenge describes the endpoint that served it.",
+        "on_fail": "The challenge's resource URL points at a different origin than the endpoint that served it."
+      },
+      {
+        "signal_id": "amount_canonical",
+        "weight": 12,
+        "severity": "fail",
+        "share": 0.11009174311926606,
+        "passes_when": "The amount is a canonical atomic integer (SPEC §1.4)",
+        "rationale": "`\"0.01\"` where atomic units are required is the most common real x402 mistake, and its failure mode is paying the wrong amount by orders of magnitude.",
+        "on_pass": "The amount is a canonical atomic integer.",
+        "on_fail": "The amount is not a canonical atomic integer, so its value is open to interpretation."
+      },
+      {
+        "signal_id": "pay_to_wellformed",
+        "weight": 12,
+        "severity": "fail",
+        "share": 0.11009174311926606,
+        "passes_when": "The recipient is a valid address for the chain family",
+        "rationale": "Money sent to a malformed address. Weighted equal to the amount because the consequence is the same size.",
+        "on_pass": "The recipient is a well-formed address for the declared network.",
+        "on_fail": "The recipient is not a well-formed address for the declared network."
+      },
+      {
+        "signal_id": "network_recognized",
+        "weight": 8,
+        "severity": "warn",
+        "share": 0.07339449541284404,
+        "passes_when": "The network is in the tx402 signed release manifest",
+        "rationale": "`warn`, not `fail`: an unrecognized network may simply be newer than our manifest. Real information, weaker claim.",
+        "on_pass": "The network is in the tx402 signed release manifest.",
+        "on_fail": "The network is not in the tx402 signed release manifest."
+      },
+      {
+        "signal_id": "asset_recognized",
+        "weight": 8,
+        "severity": "warn",
+        "share": 0.07339449541284404,
+        "passes_when": "The asset is in the manifest for that network",
+        "rationale": "Same reasoning. An unrecognized token contract is worth knowing and is not an accusation.",
+        "on_pass": "The asset is in the tx402 signed release manifest for this network.",
+        "on_fail": "The asset is not in the tx402 signed release manifest for this network."
+      },
+      {
+        "signal_id": "facilitator_known",
+        "weight": 6,
+        "severity": "warn",
+        "share": 0.05504587155963303,
+        "passes_when": "The facilitator is on the [published list](#the-facilitator-list)",
+        "rationale": "Being absent from our list says something about *our list* as much as about the facilitator. Deliberately low.",
+        "on_pass": "The facilitator is on the published list.",
+        "on_fail": "The facilitator is not on the published list."
+      },
+      {
+        "signal_id": "scheme_known",
+        "weight": 6,
+        "severity": "warn",
+        "share": 0.05504587155963303,
+        "passes_when": "The payment scheme is one tx402 can route",
+        "rationale": "An unroutable scheme means tx402 cannot pay it, but the ecosystem is adding schemes.",
+        "on_pass": "The payment scheme is one tx402 can route.",
+        "on_fail": "The payment scheme is not one tx402 can route."
+      },
+      {
+        "signal_id": "tls_ok",
+        "weight": 5,
+        "severity": "fail",
+        "share": 0.045871559633027525,
+        "passes_when": "The endpoint was reached over valid TLS",
+        "rationale": "The hosted probe is https-only, so in practice this is always true when a result exists. It is scored so the CLI — which may use `http:` against localhost — produces comparable numbers.",
+        "on_pass": "The endpoint was reached over a valid TLS connection.",
+        "on_fail": "The endpoint was not reached over a valid TLS connection."
+      },
+      {
+        "signal_id": "timeout_sane",
+        "weight": 4,
+        "severity": "warn",
+        "share": 0.03669724770642202,
+        "passes_when": "`0 < maxTimeoutSeconds <= 60`",
+        "rationale": "60s is tx402's `MAX_AUTHORIZATION_SECONDS`, the longest window it will sign for. Many endpoints use 300s and are perfectly legitimate, so this is a low-weight `warn` — it tells a tx402 buyer they will hit a limit, not that the endpoint is bad.",
+        "on_pass": "The authorization window is within the maximum tx402 will sign for.",
+        "on_fail": "The authorization window is outside the maximum tx402 will sign for."
+      },
+      {
+        "signal_id": "redirect_scheme_downgrade",
+        "weight": 3,
+        "severity": "fail",
+        "share": 0.027522935779816515,
+        "passes_when": "No hop downgraded the scheme",
+        "rationale": "The guard refuses cross-scheme redirects outright, so a scored result never downgraded. Kept in the table because \"we checked and it did not happen\" is a fact worth publishing.",
+        "on_pass": "No redirect downgraded the connection.",
+        "on_fail": "A redirect downgraded the connection to a plaintext scheme."
+      },
+      {
+        "signal_id": "wire_form",
+        "weight": 3,
+        "severity": "warn",
+        "share": 0.027522935779816515,
+        "passes_when": "The endpoint serves `v2-header` or `both`",
+        "rationale": "A v1-only endpoint is legacy, not broken. Low weight, because plenty of working endpoints are still v1.",
+        "on_pass": "The endpoint serves the x402 v2 header form.",
+        "on_fail": "The endpoint serves only the legacy v1 body form, which tx402 does not accept."
+      },
+      {
+        "signal_id": "amount_magnitude_band",
+        "weight": 2,
+        "severity": "warn",
+        "share": 0.01834862385321101,
+        "passes_when": "The band is not `extreme`",
+        "rationale": "Weakest signal in the table by design. A large price is a business decision, not a defect.",
+        "on_pass": "The amount is within the range we see for x402 endpoints.",
+        "on_fail": "The amount is far above the range we see for x402 endpoints."
+      }
+    ],
+    "bands": [
+      {
+        "band": "LOW",
+        "from": 80,
+        "to": 100
+      },
+      {
+        "band": "MEDIUM",
+        "from": 55,
+        "to": 79
+      },
+      {
+        "band": "HIGH",
+        "from": 0,
+        "to": 54
+      }
+    ],
+    "magnitude_examples": [
+      {
+        "whole_units": "0.001",
+        "band": "micro"
+      },
+      {
+        "whole_units": "0.05",
+        "band": "small"
+      },
+      {
+        "whole_units": "2.5",
+        "band": "medium"
+      },
+      {
+        "whole_units": "40",
+        "band": "large"
+      },
+      {
+        "whole_units": "250",
+        "band": "extreme"
+      }
+    ],
+    "worked_examples": [
+      {
+        "key": "everything-checked-out",
+        "title": "Everything we could check, checked out",
+        "premise": "A v2 endpoint on a recognized network, priced in a recognized asset, through a facilitator on the published list.",
+        "rows": [
+          {
+            "signal_id": "challenge_decodes",
+            "status": "pass",
+            "weight": 25,
+            "message": "The challenge decodes under the strict x402 decoder tx402 uses before paying."
+          },
+          {
+            "signal_id": "resource_origin_match",
+            "status": "pass",
+            "weight": 15,
+            "message": "The challenge describes the endpoint that served it."
+          },
+          {
+            "signal_id": "amount_canonical",
+            "status": "pass",
+            "weight": 12,
+            "message": "The amount is a canonical atomic integer."
+          },
+          {
+            "signal_id": "pay_to_wellformed",
+            "status": "pass",
+            "weight": 12,
+            "message": "The recipient is a well-formed address for the declared network."
+          },
+          {
+            "signal_id": "network_recognized",
+            "status": "pass",
+            "weight": 8,
+            "message": "The network is in the tx402 signed release manifest."
+          },
+          {
+            "signal_id": "asset_recognized",
+            "status": "pass",
+            "weight": 8,
+            "message": "The asset is in the tx402 signed release manifest for this network."
+          },
+          {
+            "signal_id": "facilitator_known",
+            "status": "pass",
+            "weight": 6,
+            "message": "The facilitator is on the published list."
+          },
+          {
+            "signal_id": "scheme_known",
+            "status": "pass",
+            "weight": 6,
+            "message": "The payment scheme is one tx402 can route."
+          },
+          {
+            "signal_id": "tls_ok",
+            "status": "pass",
+            "weight": 5,
+            "message": "The endpoint was reached over a valid TLS connection."
+          },
+          {
+            "signal_id": "timeout_sane",
+            "status": "pass",
+            "weight": 4,
+            "message": "The authorization window is within the maximum tx402 will sign for."
+          },
+          {
+            "signal_id": "redirect_scheme_downgrade",
+            "status": "pass",
+            "weight": 3,
+            "message": "No redirect downgraded the connection."
+          },
+          {
+            "signal_id": "wire_form",
+            "status": "pass",
+            "weight": 3,
+            "message": "The endpoint serves the x402 v2 header form."
+          },
+          {
+            "signal_id": "amount_magnitude_band",
+            "status": "pass",
+            "weight": 2,
+            "message": "The amount is within the range we see for x402 endpoints."
+          }
+        ],
+        "earned": 109,
+        "possible": 109,
+        "score": 100,
+        "band": "LOW",
+        "reproduced": 100,
+        "reasons_json": "{\n  \"score\": 100,\n  \"band\": \"LOW\",\n  \"reasons\": [\n    {\n      \"signal_id\": \"challenge_decodes\",\n      \"status\": \"pass\",\n      \"weight\": 25,\n      \"message\": \"The challenge decodes under the strict x402 decoder tx402 uses before paying.\"\n    },\n    {\n      \"signal_id\": \"resource_origin_match\",\n      \"status\": \"pass\",\n      \"weight\": 15,\n      \"message\": \"The challenge describes the endpoint that served it.\"\n    },\n    {\n      \"signal_id\": \"amount_canonical\",\n      \"status\": \"pass\",\n      \"weight\": 12,\n      \"message\": \"The amount is a canonical atomic integer.\"\n    },\n    {\n      \"signal_id\": \"pay_to_wellformed\",\n      \"status\": \"pass\",\n      \"weight\": 12,\n      \"message\": \"The recipient is a well-formed address for the declared network.\"\n    },\n    {\n      \"signal_id\": \"network_recognized\",\n      \"status\": \"pass\",\n      \"weight\": 8,\n      \"message\": \"The network is in the tx402 signed release manifest.\"\n    },\n    {\n      \"signal_id\": \"asset_recognized\",\n      \"status\": \"pass\",\n      \"weight\": 8,\n      \"message\": \"The asset is in the tx402 signed release manifest for this network.\"\n    },\n    {\n      \"signal_id\": \"facilitator_known\",\n      \"status\": \"pass\",\n      \"weight\": 6,\n      \"message\": \"The facilitator is on the published list.\"\n    },\n    {\n      \"signal_id\": \"scheme_known\",\n      \"status\": \"pass\",\n      \"weight\": 6,\n      \"message\": \"The payment scheme is one tx402 can route.\"\n    },\n    {\n      \"signal_id\": \"tls_ok\",\n      \"status\": \"pass\",\n      \"weight\": 5,\n      \"message\": \"The endpoint was reached over a valid TLS connection.\"\n    },\n    {\n      \"signal_id\": \"timeout_sane\",\n      \"status\": \"pass\",\n      \"weight\": 4,\n      \"message\": \"The authorization window is within the maximum tx402 will sign for.\"\n    },\n    {\n      \"signal_id\": \"redirect_scheme_downgrade\",\n      \"status\": \"pass\",\n      \"weight\": 3,\n      \"message\": \"No redirect downgraded the connection.\"\n    },\n    {\n      \"signal_id\": \"wire_form\",\n      \"status\": \"pass\",\n      \"weight\": 3,\n      \"message\": \"The endpoint serves the x402 v2 header form.\"\n    },\n    {\n      \"signal_id\": \"amount_magnitude_band\",\n      \"status\": \"pass\",\n      \"weight\": 2,\n      \"message\": \"The amount is within the range we see for x402 endpoints.\"\n    }\n  ]\n}"
+      },
+      {
+        "key": "non-atomic-amount",
+        "title": "One field is wrong: the amount is not atomic",
+        "premise": "The amount is served as \"0.01\" where atomic units are required, so the strict decoder refuses the challenge.",
+        "rows": [
+          {
+            "signal_id": "challenge_decodes",
+            "status": "fail",
+            "weight": 25,
+            "message": "The challenge does not decode under the strict x402 decoder tx402 uses before paying."
+          },
+          {
+            "signal_id": "resource_origin_match",
+            "status": "pass",
+            "weight": 15,
+            "message": "The challenge describes the endpoint that served it."
+          },
+          {
+            "signal_id": "amount_canonical",
+            "status": "fail",
+            "weight": 12,
+            "message": "The amount is not a canonical atomic integer, so its value is open to interpretation."
+          },
+          {
+            "signal_id": "pay_to_wellformed",
+            "status": "pass",
+            "weight": 12,
+            "message": "The recipient is a well-formed address for the declared network."
+          },
+          {
+            "signal_id": "network_recognized",
+            "status": "pass",
+            "weight": 8,
+            "message": "The network is in the tx402 signed release manifest."
+          },
+          {
+            "signal_id": "asset_recognized",
+            "status": "pass",
+            "weight": 8,
+            "message": "The asset is in the tx402 signed release manifest for this network."
+          },
+          {
+            "signal_id": "facilitator_known",
+            "status": "pass",
+            "weight": 6,
+            "message": "The facilitator is on the published list."
+          },
+          {
+            "signal_id": "scheme_known",
+            "status": "pass",
+            "weight": 6,
+            "message": "The payment scheme is one tx402 can route."
+          },
+          {
+            "signal_id": "tls_ok",
+            "status": "pass",
+            "weight": 5,
+            "message": "The endpoint was reached over a valid TLS connection."
+          },
+          {
+            "signal_id": "timeout_sane",
+            "status": "pass",
+            "weight": 4,
+            "message": "The authorization window is within the maximum tx402 will sign for."
+          },
+          {
+            "signal_id": "redirect_scheme_downgrade",
+            "status": "pass",
+            "weight": 3,
+            "message": "No redirect downgraded the connection."
+          },
+          {
+            "signal_id": "wire_form",
+            "status": "pass",
+            "weight": 3,
+            "message": "The endpoint serves the x402 v2 header form."
+          },
+          {
+            "signal_id": "amount_magnitude_band",
+            "status": "skip",
+            "weight": 0,
+            "message": "Not evaluable, so it was not scored."
+          }
+        ],
+        "earned": 70,
+        "possible": 107,
+        "score": 65,
+        "band": "MEDIUM",
+        "reproduced": 65,
+        "reasons_json": "{\n  \"score\": 65,\n  \"band\": \"MEDIUM\",\n  \"reasons\": [\n    {\n      \"signal_id\": \"challenge_decodes\",\n      \"status\": \"fail\",\n      \"weight\": 25,\n      \"message\": \"The challenge does not decode under the strict x402 decoder tx402 uses before paying.\"\n    },\n    {\n      \"signal_id\": \"resource_origin_match\",\n      \"status\": \"pass\",\n      \"weight\": 15,\n      \"message\": \"The challenge describes the endpoint that served it.\"\n    },\n    {\n      \"signal_id\": \"amount_canonical\",\n      \"status\": \"fail\",\n      \"weight\": 12,\n      \"message\": \"The amount is not a canonical atomic integer, so its value is open to interpretation.\"\n    },\n    {\n      \"signal_id\": \"pay_to_wellformed\",\n      \"status\": \"pass\",\n      \"weight\": 12,\n      \"message\": \"The recipient is a well-formed address for the declared network.\"\n    },\n    {\n      \"signal_id\": \"network_recognized\",\n      \"status\": \"pass\",\n      \"weight\": 8,\n      \"message\": \"The network is in the tx402 signed release manifest.\"\n    },\n    {\n      \"signal_id\": \"asset_recognized\",\n      \"status\": \"pass\",\n      \"weight\": 8,\n      \"message\": \"The asset is in the tx402 signed release manifest for this network.\"\n    },\n    {\n      \"signal_id\": \"facilitator_known\",\n      \"status\": \"pass\",\n      \"weight\": 6,\n      \"message\": \"The facilitator is on the published list.\"\n    },\n    {\n      \"signal_id\": \"scheme_known\",\n      \"status\": \"pass\",\n      \"weight\": 6,\n      \"message\": \"The payment scheme is one tx402 can route.\"\n    },\n    {\n      \"signal_id\": \"tls_ok\",\n      \"status\": \"pass\",\n      \"weight\": 5,\n      \"message\": \"The endpoint was reached over a valid TLS connection.\"\n    },\n    {\n      \"signal_id\": \"timeout_sane\",\n      \"status\": \"pass\",\n      \"weight\": 4,\n      \"message\": \"The authorization window is within the maximum tx402 will sign for.\"\n    },\n    {\n      \"signal_id\": \"redirect_scheme_downgrade\",\n      \"status\": \"pass\",\n      \"weight\": 3,\n      \"message\": \"No redirect downgraded the connection.\"\n    },\n    {\n      \"signal_id\": \"wire_form\",\n      \"status\": \"pass\",\n      \"weight\": 3,\n      \"message\": \"The endpoint serves the x402 v2 header form.\"\n    },\n    {\n      \"signal_id\": \"amount_magnitude_band\",\n      \"status\": \"skip\",\n      \"weight\": 0,\n      \"message\": \"Not evaluable, so it was not scored.\"\n    }\n  ]\n}"
+      }
+    ],
+    "formula": "score = round(100 × Σ weight[status = \"pass\"] / Σ weight[status ≠ \"skip\"])",
+    "source_url": "https://github.com/neogeeks/tx402-tools/blob/main/spec/risk-score.md",
+    "claim_path": "/methodology#claim",
+    "optout_path": "/crawler"
+  }
+}

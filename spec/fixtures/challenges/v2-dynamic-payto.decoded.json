@@ -1,0 +1,22 @@
+{
+  "x402Version": 2,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "maxAmountRequired": "2500",
+      "resource": "https://marketplace.example.com/v1/order/8f21",
+      "description": "Marketplace order settlement — per-request payout address",
+      "mimeType": "application/json",
+      "payTo": "0x9c8FF314C9Bc7F6e59A9d9225Fb22946427eDC03",
+      "maxTimeoutSeconds": 300,
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "extra": {
+        "name": "USD Coin",
+        "version": "2",
+        "payToMode": "dynamic",
+        "facilitator": "https://facilitator.example.com"
+      }
+    }
+  ]
+}

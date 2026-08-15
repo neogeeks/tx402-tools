@@ -1,0 +1,63 @@
+{
+  "description": "The hostile URL table. The requirement is that worker/lib/guard.ts rejects every `reject` row with the stated code and accepts every `allow` row. Frozen; extended (never trimmed) by red-team session.",
+  "notes": [
+    "The guard validates the RESOLVED addresses, not the hostname. Rows whose host is a name rather than a literal are therefore only meaningful when resolution is exercised — they are marked resolves:true and must drive them through a stubbed resolver, not a string check.",
+    "Every reject row must produce the SAME generic user-facing message. `code` is what the API returns; it is deliberately coarse so the guard cannot be used to map an internal network."
+  ],
+  "cases": [
+    { "id": "ok-https", "url": "https://api.example.com/v1/geocode", "expect": "allow", "code": null, "resolves": true, "note": "The baseline. If this is rejected the guard is broken." },
+    { "id": "ok-https-port", "url": "https://api.example.com:8443/v1/geocode", "expect": "allow", "code": null, "resolves": true, "note": "A non-default port on a public address is legitimate." },
+    { "id": "ok-query-sorted", "url": "https://api.example.com/v1/geocode?b=2&a=1", "expect": "allow", "code": null, "resolves": true, "note": "Canonicalization sorts the query; it does not reject it (SPEC §1.5)." },
+
+    { "id": "scheme-http", "url": "http://api.example.com/v1/geocode", "expect": "reject", "code": "URL_SCHEME_NOT_ALLOWED", "resolves": false, "note": "https only for the hosted probe. http is permitted ONLY in the local CLI." },
+    { "id": "scheme-file", "url": "file:///etc/passwd", "expect": "reject", "code": "URL_SCHEME_NOT_ALLOWED", "resolves": false, "note": null },
+    { "id": "scheme-ftp", "url": "ftp://example.com/x", "expect": "reject", "code": "URL_SCHEME_NOT_ALLOWED", "resolves": false, "note": null },
+    { "id": "scheme-gopher", "url": "gopher://example.com:70/1", "expect": "reject", "code": "URL_SCHEME_NOT_ALLOWED", "resolves": false, "note": "Classic SSRF pivot into line-oriented protocols like Redis and SMTP." },
+    { "id": "scheme-data", "url": "data:application/json,{}", "expect": "reject", "code": "URL_SCHEME_NOT_ALLOWED", "resolves": false, "note": null },
+
+    { "id": "userinfo-basic", "url": "https://user:pass@api.example.com/v1", "expect": "reject", "code": "URL_USERINFO_PRESENT", "resolves": false, "note": "Refused, never silently stripped. Stripping teaches callers the tool will forward credentials one day." },
+    { "id": "userinfo-at-trick", "url": "https://api.example.com@127.0.0.1/v1", "expect": "reject", "code": "URL_USERINFO_PRESENT", "resolves": false, "note": "Everything before the @ is userinfo. The real host is 127.0.0.1." },
+
+    { "id": "loopback-v4", "url": "https://127.0.0.1/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "loopback-range", "url": "https://127.99.12.7/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The whole 127.0.0.0/8 block, not just 127.0.0.1." },
+    { "id": "loopback-name", "url": "https://localhost/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": true, "note": null },
+    { "id": "loopback-v6", "url": "https://[::1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+
+    { "id": "rfc1918-10", "url": "https://10.0.0.5/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "rfc1918-172", "url": "https://172.16.4.9/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "172.16.0.0/12 — note 172.32.0.0 is public and must be allowed." },
+    { "id": "rfc1918-192", "url": "https://192.168.1.1/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "cgnat", "url": "https://100.64.3.2/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "100.64.0.0/10 — carrier-grade NAT." },
+    { "id": "link-local", "url": "https://169.254.10.4/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "cloud-metadata", "url": "https://169.254.169.254/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The single most-exploited SSRF target in existence." },
+    { "id": "gcp-metadata-name", "url": "https://metadata.google.internal/computeMetadata/v1/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": true, "note": "Rejected because it RESOLVES into link-local space, not because of the name." },
+    { "id": "unspecified-v4", "url": "https://0.0.0.0/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "0.0.0.0/8 routes to the local host on several stacks." },
+    { "id": "broadcast", "url": "https://255.255.255.255/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "multicast", "url": "https://224.0.0.1/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+
+    { "id": "v6-ula", "url": "https://[fd00::1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "fc00::/7 unique local addresses." },
+    { "id": "v6-link-local", "url": "https://[fe80::1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "v6-mapped-loopback", "url": "https://[::ffff:127.0.0.1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "IPv4-mapped IPv6. Checking the v6 form alone misses this; the address must be unmapped first." },
+    { "id": "v6-mapped-rfc1918", "url": "https://[::ffff:10.0.0.1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+    { "id": "v6-nat64", "url": "https://[64:ff9b::7f00:1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "NAT64 well-known prefix embedding 127.0.0.1." },
+    { "id": "v6-unspecified", "url": "https://[::]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": null },
+
+    { "id": "alt-decimal-ip", "url": "https://2130706433/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Decimal encoding of 127.0.0.1." },
+    { "id": "alt-hex-ip", "url": "https://0x7f000001/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Hex encoding of 127.0.0.1." },
+    { "id": "alt-octal-ip", "url": "https://0177.0.0.1/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Octal encoding. WHATWG URL parsing normalizes some of these and not others — do not rely on the parser alone." },
+    { "id": "alt-short-ip", "url": "https://127.1/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Two-part dotted form expands to 127.0.0.1." },
+    { "id": "trailing-dot", "url": "https://api.example.com./v1", "expect": "allow", "code": null, "resolves": true, "note": "The trailing dot is stripped in canonicalization (SPEC §1.5). It must not become a cache-key bypass." },
+
+    { "id": "dns-rebind", "url": "https://rebind.example.net/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": true, "note": "Resolver returns a public address first and 127.0.0.1 on the second lookup. The guard must PIN the address it validated and connect to that, not re-resolve." },
+    { "id": "redirect-to-private", "url": "https://redirector.example.net/to-internal", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": true, "note": "302 to http://10.0.0.5/. Every hop is re-validated, so this is caught at hop 1." },
+    { "id": "redirect-downgrade", "url": "https://redirector.example.net/to-http", "expect": "reject", "code": "URL_BLOCKED", "resolves": true, "note": "302 to an http:// URL. Never cross-scheme, even to a public address." },
+    { "id": "redirect-loop", "url": "https://redirector.example.net/loop", "expect": "reject", "code": "TOO_MANY_REDIRECTS", "resolves": true, "note": "More than 3 hops." },
+
+    { "id": "oversized-body", "url": "https://slowloris.example.net/huge", "expect": "reject", "code": "RESPONSE_TOO_LARGE", "resolves": true, "note": "Body exceeds the documented cap. The read is aborted, not buffered and then measured." },
+    { "id": "slow-response", "url": "https://slowloris.example.net/slow", "expect": "reject", "code": "PROBE_TIMEOUT", "resolves": true, "note": "Trickles bytes forever. The TOTAL budget must bound this, not just the connect timeout." },
+    { "id": "header-flood", "url": "https://slowloris.example.net/headers", "expect": "reject", "code": "RESPONSE_TOO_LARGE", "resolves": true, "note": "Thousands of response headers. Header count and total size are both capped." },
+
+    { "id": "url-too-long", "url": "https://api.example.com/v1?q=AAAA_REPEATED_BEYOND_THE_CAP", "expect": "reject", "code": "VALIDATION_FAILED", "resolves": false, "note": "Placeholder: expands the query to exceed the 4096-char cap in spec/schemas/common.json." },
+    { "id": "not-a-url", "url": "not a url at all", "expect": "reject", "code": "VALIDATION_FAILED", "resolves": false, "note": null },
+    { "id": "empty", "url": "", "expect": "reject", "code": "VALIDATION_FAILED", "resolves": false, "note": null }
+  ]
+}

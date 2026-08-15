@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/replay",
+  "title": "Replay response",
+  "description": "SPEC §5.7. Analysis is local; these routes exist only for the opt-in share permalink. Redaction happens CLIENT-SIDE before upload — the server never receives an unredacted trace and has no field to store one.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "replay" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "analysis", "expires_at"],
+          "properties": {
+            "id": { "type": ["string", "null"], "maxLength": 64 },
+            "url": { "type": ["string", "null"], "maxLength": 4096 },
+            "expires_at": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                { "type": "null" }
+              ]
+            },
+            "analysis": {
+              "oneOf": [{ "$ref": "#/$defs/ReplayAnalysis" }, { "type": "null" }]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "ReplayAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifecycle", "diagnosis", "redaction"],
+      "properties": {
+        "lifecycle": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["phase", "status"],
+            "properties": {
+              "phase": {
+                "type": "string",
+                "description": "Canonical vocabulary: discover · decode · policy · route · authorize · submit · settle · deliver. The schema constrains the shape, not the membership, so can map the SDK's own phase taxonomy on without an addendum round-trip.",
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "maxLength": 32
+              },
+              "status": {
+                "type": "string",
+                "enum": ["ok", "fail", "skip", "unknown"],
+                "description": "'unknown' is load-bearing: an ambiguous payment is exactly the case where we do not know whether the submit landed, and rendering that as 'fail' tells the user the opposite of the truth."
+              },
+              "at": {
+                "oneOf": [
+                  { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                  { "type": "null" }
+                ]
+              },
+              "detail": { "type": ["string", "null"], "maxLength": 1000 }
+            }
+          }
+        },
+        "diagnosis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "title", "explanation", "guidance", "do_not_retry"],
+          "properties": {
+            "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            "title": { "type": "string", "maxLength": 200 },
+            "explanation": { "type": "string", "maxLength": 4000 },
+            "guidance": { "type": "string", "maxLength": 4000 },
+            "do_not_retry": {
+              "type": "boolean",
+              "description": "true on an ambiguous payment. A correctness requirement, not a suggestion: the merchant may hold a valid authorization and retrying can pay twice."
+            }
+          }
+        },
+        "redaction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["applied", "fields_redacted"],
+          "properties": {
+            "applied": { "type": "boolean" },
+            "fields_redacted": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

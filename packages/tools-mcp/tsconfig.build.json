@@ -1,0 +1,39 @@
+{
+  // Emit-only. `pnpm typecheck` at the repo root is still the typecheck of
+  // record — the root config reaches these files through `test/mcp.test.ts`,
+  // exactly as it reaches `packages/tools-cli/src/verify-offline.ts` through
+  // `test/verify-offline.test.ts`.
+  //
+  // `rootDir` is the repository root because the server imports two things that
+  // live outside this package and must not be copied into it: the offline
+  // verifier (`packages/tools-cli/src/verify-offline.ts`) and
+  // the frozen schemas in `spec/schemas/`. Emitting the real module graph keeps
+  // one copy of each; the price is the `dist/packages/tools-mcp/…` depth in the
+  // output, which nothing but the bin has to know about.
+  //
+  // `types` matches the root config because `worker/types.ts` is in the graph
+  // and is written against the Workers runtime types. Types do not affect emit.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types/2023-07-01", "node"],
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "../..",
+    "declaration": false,
+    "sourceMap": false,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/inspect",
+  "title": "Inspect response",
+  "description": "SPEC §5.1. `observed.has_history: false` is a correct answer for a new endpoint, not a degraded one.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "inspect" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "probe", "challenge", "terms", "checks", "signals", "risk", "observed", "links"],
+          "properties": {
+            "target": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Target" },
+            "probe": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ProbeMeta" },
+                { "type": "null" }
+              ]
+            },
+            "challenge": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Challenge" },
+                { "type": "null" }
+              ]
+            },
+            "terms": {
+              "description": "The selected/primary requirement. null when there is no usable challenge.",
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Requirement" },
+                { "type": "null" }
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Check" }
+            },
+            "signals": {
+              "type": "array",
+              "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Signal" }
+            },
+            "risk": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Risk" },
+                { "type": "null" }
+              ]
+            },
+            "observed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["has_history", "first_seen", "last_seen", "scan_count", "availability_30d", "latency_p50_ms", "recent_changes"],
+              "properties": {
+                "has_history": { "type": "boolean" },
+                "first_seen": {
+                  "oneOf": [
+                    { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                    { "type": "null" }
+                  ]
+                },
+                "last_seen": {
+                  "oneOf": [
+                    { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                    { "type": "null" }
+                  ]
+                },
+                "scan_count": { "type": "integer", "minimum": 0 },
+                "availability_30d": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+                "latency_p50_ms": { "type": ["integer", "null"], "minimum": 0 },
+                "recent_changes": {
+                  "type": "array",
+                  "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/TermChange" }
+                }
+              }
+            },
+            "links": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["html", "markdown", "json", "history", "methodology", "share"],
+              "properties": {
+                "html": { "type": ["string", "null"] },
+                "markdown": { "type": ["string", "null"] },
+                "json": { "type": ["string", "null"] },
+                "history": { "type": ["string", "null"] },
+                "methodology": { "type": ["string", "null"] },
+                "share": { "type": ["string", "null"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

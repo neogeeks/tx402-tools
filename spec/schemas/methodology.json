@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/methodology",
+  "title": "Scoring methodology response",
+  "description": "GET /methodology with Accept: application/json. /§6.2: the methodology is published, versioned with the score, and lists every signal, its weight and its rationale. Every field here is read out of worker/lib/score.ts at render time rather than transcribed, records the addition.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "methodology" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "score_version",
+            "total_available_weight",
+            "coverage_floor_percent",
+            "signals",
+            "bands",
+            "magnitude_examples",
+            "worked_examples",
+            "formula",
+            "source_url",
+            "claim_path",
+            "optout_path"
+          ],
+          "properties": {
+            "score_version": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ScoreVersion" },
+            "total_available_weight": { "type": "number", "minimum": 0 },
+            "coverage_floor_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+            "formula": { "type": "string", "maxLength": 500 },
+            "source_url": { "type": "string", "maxLength": 4096 },
+            "claim_path": { "type": "string", "maxLength": 4096 },
+            "optout_path": { "type": "string", "maxLength": 4096 },
+
+            "signals": {
+              "type": "array",
+              "description": "One row per scored signal, ordered by weight. `on_pass` and `on_fail` are the exact strings score() puts in reasons[].message.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "signal_id",
+                  "weight",
+                  "severity",
+                  "share",
+                  "passes_when",
+                  "rationale",
+                  "on_pass",
+                  "on_fail"
+                ],
+                "properties": {
+                  "signal_id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+                  "weight": { "type": "number", "minimum": 0 },
+                  "severity": {
+                    "type": "string",
+                    "enum": ["fail", "warn"],
+                    "description": "Does not change the arithmetic — the weight already carries that. It tells a renderer how to phrase the finding."
+                  },
+                  "share": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "passes_when": { "type": "string", "maxLength": 500 },
+                  "rationale": { "type": "string", "maxLength": 2000 },
+                  "on_pass": { "type": "string", "maxLength": 500 },
+                  "on_fail": { "type": "string", "maxLength": 500 }
+                }
+              }
+            },
+
+            "bands": {
+              "type": "array",
+              "description": "Thresholds published with the score version, never with the deploy (SPEC §7).",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["band", "from", "to"],
+                "properties": {
+                  "band": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Band" },
+                  "from": { "type": ["number", "null"] },
+                  "to": { "type": ["number", "null"] }
+                }
+              }
+            },
+
+            "magnitude_examples": {
+              "type": "array",
+              "description": "Concrete amounts run through magnitudeBand(), so the bands are demonstrated rather than asserted.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["whole_units", "band"],
+                "properties": {
+                  "whole_units": { "type": "string", "maxLength": 64 },
+                  "band": {
+                    "type": "string",
+                    "enum": ["micro", "small", "medium", "large", "extreme", "unknown"]
+                  }
+                }
+              }
+            },
+
+            "worked_examples": {
+              "type": "array",
+              "description": "The actual return value of score() over a signal set, plus reproduceScore() over the reasons[] it produced. `reproduced` not equalling `score` is a release-blocking bug.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key",
+                  "title",
+                  "premise",
+                  "rows",
+                  "earned",
+                  "possible",
+                  "score",
+                  "band",
+                  "reproduced",
+                  "reasons_json"
+                ],
+                "properties": {
+                  "key": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+                  "title": { "type": "string", "maxLength": 200 },
+                  "premise": { "type": "string", "maxLength": 1000 },
+                  "earned": { "type": "number", "minimum": 0 },
+                  "possible": { "type": "number", "minimum": 0 },
+                  "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "band": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Band" },
+                  "reproduced": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "reasons_json": { "type": "string" },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/RiskReason"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

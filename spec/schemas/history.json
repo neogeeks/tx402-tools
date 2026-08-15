@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/history",
+  "title": "History response",
+  "description": "SPEC §5.4. Price and recipient series come from term_changes in D1 and are exact; availability and latency come from Analytics Engine and are sampled. coverage.sampled says which. The two are never blended into one array.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "history" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["target", "window", "has_data", "coverage", "series", "changes"],
+          "properties": {
+            "target": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Target" },
+            "window": { "type": "string", "enum": ["7d", "30d", "90d"] },
+            "has_data": { "type": "boolean" },
+            "coverage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["first_seen", "last_seen", "scan_count", "sampled"],
+              "properties": {
+                "first_seen": {
+                  "oneOf": [
+                    { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                    { "type": "null" }
+                  ]
+                },
+                "last_seen": {
+                  "oneOf": [
+                    { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                    { "type": "null" }
+                  ]
+                },
+                "scan_count": { "type": "integer", "minimum": 0 },
+                "sampled": {
+                  "type": "boolean",
+                  "description": "Mandatory true whenever any series comes from Analytics Engine, which is sampled and retention-bounded."
+                }
+              }
+            },
+            "series": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["price", "availability", "latency"],
+              "properties": {
+                "price": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["t", "amount_atomic"],
+                    "properties": {
+                      "t": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                      "amount_atomic": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/AtomicAmount" },
+                      "amount_decimal": { "type": ["string", "null"] },
+                      "asset_symbol": { "type": ["string", "null"] },
+                      "network": { "type": ["string", "null"] }
+                    }
+                  }
+                },
+                "availability": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["t", "ratio", "samples"],
+                    "properties": {
+                      "t": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                      "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "samples": { "type": "integer", "minimum": 0 }
+                    }
+                  }
+                },
+                "latency": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["t", "p50_ms", "samples"],
+                    "properties": {
+                      "t": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                      "p50_ms": { "type": ["integer", "null"], "minimum": 0 },
+                      "p95_ms": { "type": ["integer", "null"], "minimum": 0 },
+                      "samples": { "type": "integer", "minimum": 0 }
+                    }
+                  }
+                }
+              }
+            },
+            "changes": {
+              "type": "array",
+              "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/TermChange" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

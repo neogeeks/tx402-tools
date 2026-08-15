@@ -1,0 +1,170 @@
+{
+  "$comment": [
+    "x402 payment-discovery manifest for tools.tx402.io — owns this file.",
+    "",
+    "WHAT IT IS. A self-published discovery document at the path the ecosystem has converged on:",
+    "ontarioprotocol.com and x402.openwebninja.com both serve one, and it is what a directory, a",
+    "crawler or an agent reads to find out what an origin charges before asking it anything. It is",
+    "NOT an x402 Bazaar listing — see 'listing_status' below, for why it cannot",
+    "be one.",
+    "",
+    "WHAT IT SAYS. That every resource here costs nothing. 'accepts' is empty on every entry and",
+    "that is the load-bearing field: an empty 'accepts' is the only correct way to state a zero",
+    "price in this format, because any non-empty entry advertises a charge, a payTo address and an",
+    "asset that do not exist.",
+    "",
+    "NO TIMESTAMPS. A static file's 'generated_at' is stale the moment it is committed, and the",
+    "same reasoning that keeps <lastmod> out of sitemap.xml keeps a fabricated freshness claim out",
+    "of a document whose whole purpose is machine-readable truth. Freshness for the corpus behind",
+    "these routes is per-response ('meta.cached', 'meta.cache_age_seconds'), where it is real.",
+    "",
+    "KEPT IN SYNC BY A TEST, not by discipline: test/seo.test.ts asserts the resource list here",
+    "matches ui/tool-meta.ts and the router. Add a tool, and that test fails until this file agrees."
+  ],
+
+  "x402Version": 2,
+  "name": "tx402 tools",
+  "homepage": "https://tools.tx402.io",
+  "description": "Free hosted utilities for the x402 payment protocol: inspect what an endpoint charges, verify a payment challenge before signing it, evaluate a spend policy, and compare or track endpoints over time. Challenge decoding and policy evaluation run the same code the tx402 SDK runs before it pays.",
+
+  "accepts_payment": false,
+  "payment_note": "Nothing on this origin is paid, metered or authenticated. There is no account, no API key and no payTo address. Probes are rate-limited per TARGET endpoint rather than per caller, so the limit protects the endpoints being probed, not a revenue model.",
+
+  "capabilities": {
+    "constructs_payment": false,
+    "holds_keys": false,
+    "custodies_funds": false,
+    "note": "This service reads the public payment challenge an endpoint serves to anyone who asks, and stops. No signer, no key material and no payment signature header is constructed anywhere in the repository it is built from; CI fails the build on the shape of any of the three."
+  },
+
+  "resources": [
+    {
+      "resource": "https://tools.tx402.io/api/v1/inspect",
+      "type": "http",
+      "method": "GET",
+      "accepts": [],
+      "name": "x402 endpoint inspector",
+      "description": "What does this x402 endpoint charge? Probes one public endpoint, decodes the 402 challenge with tx402's own strict decoder, and returns terms, per-check results and an observation band.",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": { "type": "http", "method": "GET", "queryParams": { "url": "https://an.example/paid" } },
+            "output": { "type": "json", "schema": "https://tools.tx402.io/api/v1/schemas/inspect" }
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://tools.tx402.io/api/v1/verify",
+      "type": "http",
+      "method": "POST",
+      "accepts": [],
+      "name": "x402 challenge verifier",
+      "description": "Static checks on a challenge you already hold, at the moment you are about to sign it. Does not contact the endpoint.",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": { "type": "http", "method": "POST", "body": { "challenge": "<the 402 challenge>", "url": "https://an.example/paid" } },
+            "output": { "type": "json", "schema": "https://tools.tx402.io/api/v1/schemas/verify" }
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://tools.tx402.io/api/v1/policy/evaluate",
+      "type": "http",
+      "method": "POST",
+      "accepts": [],
+      "name": "x402 spend policy evaluator",
+      "description": "Runs the real tx402 PolicyEngine against a challenge and a policy, and returns the allow/deny plus the exact typed error your own code would raise.",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": { "type": "http", "method": "POST", "body": { "challenge": "<the 402 challenge>", "policy": "<a tx402 policy>" } },
+            "output": { "type": "json", "schema": "https://tools.tx402.io/api/v1/schemas/policy" }
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://tools.tx402.io/api/v1/history",
+      "type": "http",
+      "method": "GET",
+      "accepts": [],
+      "name": "x402 endpoint price history",
+      "description": "How an endpoint's price, payout address, availability and latency have moved, with every terms change dated. Answers NO_DATA for an endpoint nobody has probed rather than guessing.",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": { "type": "http", "method": "GET", "queryParams": { "url": "https://an.example/paid" } },
+            "output": { "type": "json", "schema": "https://tools.tx402.io/api/v1/schemas/history" }
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://tools.tx402.io/api/v1/compare",
+      "type": "http",
+      "method": "GET",
+      "accepts": [],
+      "name": "x402 endpoint comparison",
+      "description": "Endpoints in one curated category, side by side on price per call, network, asset, observed availability and latency. Refuses to rank rows scored under different score_versions rather than ranking them wrongly.",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": { "type": "http", "method": "GET", "queryParams": { "category": "geocoding" } },
+            "output": { "type": "json", "schema": "https://tools.tx402.io/api/v1/schemas/compare" }
+          }
+        }
+      }
+    }
+  ],
+
+  "mcp": {
+    "package": "tx402-tools-mcp",
+    "transport": "stdio",
+    "runs_on": "the caller's own machine",
+    "price": "none",
+    "tools": ["inspect_endpoint", "verify_challenge"],
+    "source": "https://github.com/neogeeks/tx402-tools/tree/main/packages/tools-mcp",
+    "published": false,
+    "note": "Declared here rather than in 'resources' because it is deliberately NOT a Bazaar-shaped MCP entry. Bazaar's type:\"mcp\" identifies a resource by URL and requires a transport of streamable-http or sse; this server has neither — it is spawned over stdio by the client and has no address. Listing it with a fabricated resource URL would be a false machine-readable claim in a file whose purpose is the opposite. NOT PUBLISHED: the name currently holds a reserved 0.0.0 placeholder on npm and a real release is a human decision. Until then, build it from source."
+  },
+
+  "cli": {
+    "package": "tx402-tools",
+    "source": "https://github.com/neogeeks/tx402-tools/tree/main/packages/tools-cli",
+    "published": false,
+    "note": "Same reserved 0.0.0 placeholder as the MCP server. It reaches localhost and private endpoints the hosted probe refuses, and its verify path makes zero network calls."
+  },
+
+  "listing_status": {
+    "bazaar": "not_listed",
+    "reason": "Bazaar catalogues a resource when a facilitator settles a PaymentPayload carrying the echoed bazaar extension. Nothing on this origin is paid, so no PaymentPayload is ever produced and no settlement ever happens — there is no mechanism by which a free resource enters the feed, and no self-service submission endpoint exists. Verified 2026-08-15 against the live coinbase-cdp feed: 100 of 100 resources are type:\"http\" and every one is priced.",
+    "consequence": "This manifest, /llms.txt and /sitemap.xml are the discovery surface for this origin. A directory that reads self-published manifests can list these routes from this file."
+  },
+
+  "disclosure": {
+    "self_reference": "This service scores x402 endpoints, including endpoints listed in the same directories it reads to build its corpus. It ingests the x402 Bazaar discovery feeds and awesome-x402 as seed data, and it publishes observations about what it finds there. That is a conflict worth stating rather than leaving to be noticed.",
+    "mitigation": "The verdict is a versioned pure function of published signals, not a judgement and not a model: every signal, weight and threshold is at https://tools.tx402.io/methodology and in the repository, historical scores are never recomputed, and any operator can claim an endpoint, correct a fact or opt out at https://tools.tx402.io/crawler.",
+    "band_meaning": "A band of LOW, MEDIUM or HIGH describes how much of what we check we were able to confirm about an endpoint. It is not a judgement about its operator and must not be quoted as one."
+  },
+
+  "surfaces": {
+    "agents": "https://tools.tx402.io/llms.txt",
+    "sitemap": "https://tools.tx402.io/sitemap.xml",
+    "schemas": "https://tools.tx402.io/api/v1/schemas",
+    "service_metadata": "https://tools.tx402.io/api/v1/meta",
+    "errors": "https://tools.tx402.io/errors",
+    "methodology": "https://tools.tx402.io/methodology",
+    "crawler_and_optout": "https://tools.tx402.io/crawler",
+    "content_negotiation": "Every tool route serves JSON (Accept: application/json), Markdown (Accept: text/markdown, or a .md suffix) and HTML from one computation, with Vary: Accept and Link: rel=alternate on every response."
+  },
+
+  "contact": {
+    "security": "mailto:security@tx402.io",
+    "abuse": "mailto:abuse@tx402.io",
+    "source": "https://github.com/neogeeks/tx402-tools",
+    "license": "Apache-2.0"
+  }
+}

@@ -1,0 +1,148 @@
+/* ==================================================================
+   tx402 tools — design tokens
+   Ported from tx402-landing/public/styles.css. SAME VARIABLE NAMES,
+   same values, so the two properties are visibly one product and a
+   change on either side is a one-file diff.
+
+   THIS IS THE ONLY FILE IN THE REPO ALLOWED TO CONTAIN A RAW COLOUR.
+   `pnpm gate:tokens` fails the build on a hex, rgb() or hsl() literal
+   anywhere else. If you need a new colour, add a
+   token here and say why — do not inline it at the call site. Seven
+   tools that each invent their own greys is seven visual dialects.
+
+   Dark is the default. Light is opt-in via [data-theme='light'] and
+   automatic for visitors whose system asks for it.
+   ================================================================== */
+
+:root {
+  --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --maxw: 1200px;
+  --narroww: 760px;
+  --gutter: clamp(1.1rem, 4vw, 2.5rem);
+
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  --s1:.25rem; --s2:.5rem; --s3:.75rem; --s4: 1rem;
+  --s5: 1.5rem; --s6: 2rem; --s7: 3rem; --s8: 4rem;
+  --section-y: clamp(3.5rem, 8vw, 6.5rem);
+
+  --btn-h: 44px;
+  --btn-h-lg: 52px;
+  --field-h: 46px;
+
+  --t-fast: 120ms;
+  --t: 200ms;
+  --ease: cubic-bezier(.4, 0,.2, 1);
+}
+
+/* Dark (default) */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --bg-alt: #0d1018;
+  --surface: #12161f;
+  --surface-2: #171c27;
+  --surface-3: #1c2230;
+  --border: #232a38;
+  --border-strong: #333d50;
+  --text: #e9ecf3;
+  --text-muted: #99a2b6;
+  --text-faint: #6d7689;
+
+  --accent: #4da3ff;
+  --accent-soft: rgba(77, 163, 255,.12);
+  --accent-line: rgba(77, 163, 255,.35);
+  --btn-bg: #4da3ff;
+  --btn-bg-hover: #7abaff;
+  --btn-fg: #04070d;
+
+  --ok: #46c05a;
+  --ok-soft: rgba(70, 192, 90,.12);
+  --warn: #dda63c;
+  --warn-soft: rgba(221, 166, 60,.12);
+  --err: #f8746b;
+  --err-soft: rgba(248, 116, 107,.12);
+  --idle: #6d7689;
+
+  --grid-line: rgba(140, 165, 210,.055);
+  --shadow: 0 1px 2px rgba(0, 0, 0,.4), 0 16px 40px -24px rgba(0, 0, 0,.8);
+  --header-bg: rgba(10, 12, 17,.78);
+}
+
+/* Light */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #fbfcfe;
+  --bg-alt: #f3f6fa;
+  --surface: #ffffff;
+  --surface-2: #f7f9fc;
+  --surface-3: #eef2f8;
+  --border: #e0e6f0;
+  --border-strong: #c3ccdd;
+  --text: #0f141d;
+  --text-muted: #545f77;
+  --text-faint: #6f7a90;
+
+  --accent: #0b62d6;
+  --accent-soft: rgba(11, 98, 214,.08);
+  --accent-line: rgba(11, 98, 214,.3);
+  --btn-bg: #0b62d6;
+  --btn-bg-hover: #094fad;
+  --btn-fg: #ffffff;
+
+  --ok: #10693a;
+  --ok-soft: rgba(16, 105, 58,.1);
+  --warn: #8a5a00;
+  --warn-soft: rgba(138, 90, 0,.1);
+  --err: #c22b21;
+  --err-soft: rgba(194, 43, 33,.09);
+  --idle: #77839a;
+
+  --grid-line: rgba(30, 60, 110,.06);
+  --shadow: 0 1px 2px rgba(15, 23, 42,.05), 0 14px 34px -22px rgba(15, 23, 42,.3);
+  --header-bg: rgba(251, 252, 254,.82);
+}
+
+/* Visitors whose system asks for light and who have not chosen otherwise.
+   The landing page predates this block; the values are identical to the
+   [data-theme='light'] set above, so the two stay in step. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #fbfcfe;
+    --bg-alt: #f3f6fa;
+    --surface: #ffffff;
+    --surface-2: #f7f9fc;
+    --surface-3: #eef2f8;
+    --border: #e0e6f0;
+    --border-strong: #c3ccdd;
+    --text: #0f141d;
+    --text-muted: #545f77;
+    --text-faint: #6f7a90;
+
+    --accent: #0b62d6;
+    --accent-soft: rgba(11, 98, 214,.08);
+    --accent-line: rgba(11, 98, 214,.3);
+    --btn-bg: #0b62d6;
+    --btn-bg-hover: #094fad;
+    --btn-fg: #ffffff;
+
+    --ok: #10693a;
+    --ok-soft: rgba(16, 105, 58,.1);
+    --warn: #8a5a00;
+    --warn-soft: rgba(138, 90, 0,.1);
+    --err: #c22b21;
+    --err-soft: rgba(194, 43, 33,.09);
+    --idle: #77839a;
+
+    --grid-line: rgba(30, 60, 110,.06);
+    --shadow: 0 1px 2px rgba(15, 23, 42,.05), 0 14px 34px -22px rgba(15, 23, 42,.3);
+    --header-bg: rgba(251, 252, 254,.82);
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/appeal",
+  "title": "Appeal response",
+  "description": "POST /api/v1/appeal. correct a wrong fact, or opt out. An appeal requires a verified claim, because proof of control of the domain is the only authorisation this product has — there is no sign-in. Added by;",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "appeal" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["appeal", "next_steps", "removal"],
+          "properties": {
+            "appeal": { "$ref": "#/$defs/Appeal" },
+            "next_steps": { "type": "array", "items": { "type": "string", "maxLength": 1000 } },
+            "removal": {
+              "description": "Set when remedy was `removal`. Opt-out is effective immediately and honoured at read time as well as at crawl time.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["effective_at", "endpoints_affected"],
+                  "properties": {
+                    "effective_at": {
+                      "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp"
+                    },
+                    "endpoints_affected": { "type": "integer", "minimum": 0 }
+                  }
+                },
+                { "type": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+    "Appeal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "origin",
+        "endpoint_id",
+        "claim_id",
+        "disputed",
+        "remedy",
+        "argument",
+        "state",
+        "resolution",
+        "correction_change_id",
+        "created_at",
+        "resolved_at"
+      ],
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "origin": {
+          "type": "string",
+          "description": "What the claim proved control of. Appeals are looked up by origin, which is what makes losing a claim id survivable.",
+          "maxLength": 4096
+        },
+        "endpoint_id": {
+          "description": "Null for an origin-wide appeal — a pre-emptive removal is filed by an operator whose endpoints we have never crawled.",
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/EndpointId" },
+            { "type": "null" }
+          ]
+        },
+        "claim_id": { "type": ["string", "null"], "pattern": "^[0-9a-f]{32}$" },
+        "disputed": {
+          "type": "string",
+          "description": "A signal id, a term_changes id, or 'listing'.",
+          "maxLength": 200
+        },
+        "remedy": {
+          "type": "string",
+          "enum": ["correction", "removal"],
+          "description": "`correction` is reviewed by a person and appended to the change log if upheld; `removal` is applied immediately, because proof of control is the whole test for an opt-out and it has already been passed."
+        },
+        "argument": {
+          "type": "string",
+          "description": "Operator-supplied prose. Capped, stored as sent, never published, and only served back through a verified claim for the same origin.",
+          "maxLength": 4000
+        },
+        "state": { "type": "string", "enum": ["open", "upheld", "corrected", "declined"] },
+        "resolution": { "type": ["string", "null"], "maxLength": 2000 },
+        "correction_change_id": {
+          "type": ["string", "null"],
+          "description": "The appended term_changes correction row, if any. Nothing is ever overwritten.",
+          "maxLength": 64
+        },
+        "created_at": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+        "resolved_at": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/challenge-input",
+  "title": "x402 challenge, as served",
+  "description": "The shape of an x402 payment-required challenge on the wire, used to classify the frozen fixtures in spec/fixtures/. This is DESCRIPTIVE, not a validator: the authoritative decoder is decodePaymentRequired from tx402, and a payload that satisfies this schema can still be rejected by it (strict base64, byte cap, depth cap, duplicate keys, resource-origin check). Fixtures marked expect:invalid here are the ones that fail even this loose shape.",
+  "type": "object",
+  "required": ["x402Version", "accepts"],
+  "properties": {
+    "x402Version": { "type": "integer", "minimum": 1 },
+    "error": { "type": ["string", "null"] },
+    "accepts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["scheme", "network", "maxAmountRequired", "resource", "payTo", "asset"],
+        "properties": {
+          "scheme": { "type": "string" },
+          "network": { "type": "string" },
+          "maxAmountRequired": { "type": ["string", "number"] },
+          "resource": { "type": "string" },
+          "description": { "type": "string" },
+          "mimeType": { "type": "string" },
+          "outputSchema": {},
+          "payTo": { "type": "string" },
+          "maxTimeoutSeconds": { "type": ["integer", "number"] },
+          "asset": { "type": "string" },
+          "extra": { "type": ["object", "null"] }
+        }
+      }
+    }
+  }
+}

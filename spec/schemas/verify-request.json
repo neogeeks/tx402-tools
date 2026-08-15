@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/verify-request",
+  "title": "Verify request body",
+  "description": "SPEC §5.2. options.enrich defaults to false: the offline checks send nothing, and corpus enrichment is an explicit opt-in.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["challenge"],
+  "properties": {
+    "challenge": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ChallengeInput" },
+    "context": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": ["string", "null"], "maxLength": 4096 },
+        "expected_origin": { "type": ["string", "null"], "maxLength": 2048 }
+      }
+    },
+    "options": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "enrich": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

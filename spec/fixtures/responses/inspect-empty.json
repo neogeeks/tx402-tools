@@ -1,0 +1,42 @@
+{
+  "api_version": "v1",
+  "tool": "inspect",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": false,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/inspect"
+  },
+  "warnings": [
+    { "code": "NO_DATA", "message": "No observation for this endpoint yet." }
+  ],
+  "data": {
+    "target": { "url": null, "canonical_url": null, "endpoint_id": null, "origin": null, "host": null },
+    "probe": null,
+    "challenge": null,
+    "terms": null,
+    "checks": [],
+    "signals": [],
+    "risk": null,
+    "observed": {
+      "has_history": false,
+      "first_seen": null,
+      "last_seen": null,
+      "scan_count": 0,
+      "availability_30d": null,
+      "latency_p50_ms": null,
+      "recent_changes": []
+    },
+    "links": {
+      "html": "https://tools.tx402.io/inspect",
+      "markdown": "https://tools.tx402.io/inspect.md",
+      "json": "https://tools.tx402.io/api/v1/inspect",
+      "history": null,
+      "methodology": "https://tools.tx402.io/methodology",
+      "share": null
+    }
+  }
+}

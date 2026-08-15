@@ -1,0 +1,8 @@
+packages:
+  - "packages/*"
+
+# wrangler needs workerd's binary and esbuild's postinstall; nothing else runs
+# a build script in this repo.
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

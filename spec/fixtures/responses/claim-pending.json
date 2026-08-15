@@ -1,0 +1,38 @@
+{
+  "api_version": "v1",
+  "tool": "claim",
+  "generated_at": "2026-08-15T12:00:00Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": "v1",
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/claim"
+  },
+  "warnings": [],
+  "data": {
+    "id": "00000000000000000000000000000000",
+    "origin": "https://api.example.com",
+    "method": "dns-txt",
+    "state": "pending",
+    "challenge_token": "x402-tools-claim=11111111111111111111111111111111",
+    "instructions": {
+      "method": "dns-txt",
+      "summary": "Publish a TXT record at _x402-tools.api.example.com whose value is the token below, then call the verify route.",
+      "record_name": "_x402-tools.api.example.com",
+      "publish": "x402-tools-claim=11111111111111111111111111111111",
+      "url": null
+    },
+    "created_at": "2026-08-15T12:00:00Z",
+    "verified_at": null,
+    "token_expires_at": "2026-08-18T12:00:00Z",
+    "observed": null,
+    "appeals": null,
+    "next_steps": [
+      "Publish a TXT record at _x402-tools.api.example.com whose value is the token below, then call the verify route.",
+      "POST /api/v1/claim/00000000000000000000000000000000/verify once it is published.",
+      "The token stops being verifiable 72 hours after it was issued."
+    ]
+  }
+}

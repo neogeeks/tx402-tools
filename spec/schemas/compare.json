@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/compare",
+  "title": "Compare response",
+  "description": "SPEC §5.5. insufficient_data renders as an explicit 'not enough data yet' cell — a comparison table that fills gaps with plausible-looking numbers is a liability.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "compare" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["category", "rows", "notes"],
+          "properties": {
+            "category": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["slug", "title"],
+                  "properties": {
+                    "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+                    "title": { "type": "string", "maxLength": 200 },
+                    "summary": { "type": ["string", "null"], "maxLength": 2000 }
+                  }
+                },
+                { "type": "null" }
+              ]
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["endpoint_id", "url", "terms", "availability_30d", "latency_p50_ms", "risk", "insufficient_data", "last_seen"],
+                "properties": {
+                  "endpoint_id": {
+                    "oneOf": [
+                      { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/EndpointId" },
+                      { "type": "null" }
+                    ]
+                  },
+                  "url": { "type": "string", "maxLength": 4096 },
+                  "title": { "type": ["string", "null"], "maxLength": 200 },
+                  "terms": {
+                    "oneOf": [
+                      { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Requirement" },
+                      { "type": "null" }
+                    ]
+                  },
+                  "availability_30d": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+                  "latency_p50_ms": { "type": ["integer", "null"], "minimum": 0 },
+                  "risk": {
+                    "oneOf": [
+                      { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Risk" },
+                      { "type": "null" }
+                    ]
+                  },
+                  "insufficient_data": { "type": "boolean" },
+                  "last_seen": {
+                    "oneOf": [
+                      { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                      { "type": "null" }
+                    ]
+                  }
+                }
+              }
+            },
+            "notes": {
+              "type": "array",
+              "description": "e.g. 'rows scored under different score_versions are not ranked against each other'.",
+              "items": { "type": "string", "maxLength": 500 }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

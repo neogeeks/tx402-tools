@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/verify",
+  "title": "Verify response",
+  "description": "SPEC §5.2. Both implement the same frozen check ids with the same semantics, which is what makes the two verdicts comparable.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "verify" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["verdict", "challenge", "checks", "signals", "risk", "enrichment"],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": ["pass", "warn", "fail"],
+              "description": "fail if any check failed, else warn if any warned, else pass. Frozen aggregation rule."
+            },
+            "challenge": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Challenge" },
+                { "type": "null" }
+              ]
+            },
+            "checks": {
+              "type": "array",
+              "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Check" }
+            },
+            "signals": {
+              "type": "array",
+              "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Signal" }
+            },
+            "risk": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Risk" },
+                { "type": "null" }
+              ]
+            },
+            "enrichment": {
+              "description": "null unless options.enrich was true. The offline/enriched split is the product (SPEC §5.2).",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["endpoint_known", "amount_within_observed_range", "recipient_matches_observed"],
+                  "properties": {
+                    "endpoint_known": { "type": "boolean" },
+                    "endpoint_id": {
+                      "oneOf": [
+                        { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/EndpointId" },
+                        { "type": "null" }
+                      ]
+                    },
+                    "amount_within_observed_range": { "type": ["boolean", "null"] },
+                    "observed_amount_range": {
+                      "type": ["object", "null"],
+                      "additionalProperties": false,
+                      "required": ["min_atomic", "max_atomic", "samples"],
+                      "properties": {
+                        "min_atomic": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/AtomicAmount" },
+                        "max_atomic": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/AtomicAmount" },
+                        "samples": { "type": "integer", "minimum": 0 }
+                      }
+                    },
+                    "recipient_matches_observed": { "type": ["boolean", "null"] },
+                    "last_observed_pay_to": { "type": ["string", "null"], "maxLength": 128 }
+                  }
+                },
+                { "type": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

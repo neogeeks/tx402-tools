@@ -1,0 +1,15 @@
+{
+  "api_version": "v1",
+  "tool": "compare",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": false,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/compare"
+  },
+  "warnings": [],
+  "data": { "category": null, "rows": [], "notes": [] }
+}

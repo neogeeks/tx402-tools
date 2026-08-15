@@ -1,0 +1,52 @@
+{
+  "name": "tx402-tools-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Hosted x402 utilities: inspector, verifier, policy playground, history, compare, replay.",
+  "license": "Apache-2.0",
+  "author": "tx402",
+  "homepage": "https://tools.tx402.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neogeeks/tx402-tools.git"
+  },
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "deploy": "wrangler deploy",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema:check": "node scripts/schema-check.mjs",
+    "gate:no-signer": "node scripts/gate-no-signer.mjs",
+    "gate:tokens": "node scripts/gate-tokens.mjs",
+    "gates": "pnpm gate:no-signer && pnpm gate:tokens && pnpm schema:check",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm gates",
+    "db:migrate:local": "wrangler d1 migrations apply tx402-tools --local",
+    "db:migrate:remote": "wrangler d1 migrations apply tx402-tools --remote",
+    "cf:types": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.10",
+    "@cloudflare/workers-types": "^4.20250801.0",
+    "@eslint/js": "^9.20.0",
+    "@types/node": "^26.2.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.20.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "vitest": "~3.0.9",
+    "wrangler": "^4.86.0"
+  },
+  "dependencies": {
+    "tx402": "^0.2.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Node types are here for the test harness and the gate scripts, not for
+    // the Worker. `nodejs_compat` is on (tx402 core uses node:crypto), but
+    // worker/ imports no Node builtin directly — the Workers runtime types are
+    // the ones that matter there.
+    "types": ["@cloudflare/workers-types/2023-07-01", "node"],
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "checkJs": false,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["worker/**/*.ts", "ui/**/*.ts", "test/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "dist", ".wrangler", "packages"]
+}

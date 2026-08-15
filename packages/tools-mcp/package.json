@@ -1,0 +1,32 @@
+{
+  "name": "tx402-tools-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the tx402 hosted x402 utilities: inspect_endpoint and verify_challenge, for agents about to pay something. Holds no keys and cannot pay.",
+  "keywords": ["x402", "tx402", "mcp", "model-context-protocol", "agents", "payments"],
+  "license": "Apache-2.0",
+  "author": "tx402",
+  "homepage": "https://tools.tx402.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neogeeks/tx402-tools.git",
+    "directory": "packages/tools-mcp"
+  },
+  "bugs": { "url": "https://github.com/neogeeks/tx402-tools/issues" },
+  "type": "module",
+  "bin": { "tx402-tools-mcp": "bin/tx402-tools-mcp.mjs" },
+  "files": ["bin", "dist", "README.md"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node bin/tx402-tools-mcp.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "tx402": "^0.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "publishConfig": { "access": "public" }
+}

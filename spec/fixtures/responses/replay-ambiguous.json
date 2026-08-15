@@ -1,0 +1,39 @@
+{
+  "api_version": "v1",
+  "tool": "replay",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": "0.2.0",
+    "schema": "https://tools.tx402.io/api/v1/schemas/replay"
+  },
+  "warnings": [],
+  "data": {
+    "id": "r_7Qk2vN8pYtLmXc4WzHb1Ja",
+    "url": "https://tools.tx402.io/replay/r_7Qk2vN8pYtLmXc4WzHb1Ja",
+    "expires_at": "2026-09-13T09:41:07Z",
+    "analysis": {
+      "lifecycle": [
+        { "phase": "discover", "status": "ok", "at": "2026-08-14T09:38:00Z", "detail": "402 with a v2 challenge" },
+        { "phase": "decode", "status": "ok", "at": "2026-08-14T09:38:00Z", "detail": null },
+        { "phase": "policy", "status": "ok", "at": "2026-08-14T09:38:00Z", "detail": "within budget" },
+        { "phase": "route", "status": "ok", "at": "2026-08-14T09:38:01Z", "detail": "eip155:8453 / USDC" },
+        { "phase": "authorize", "status": "ok", "at": "2026-08-14T09:38:02Z", "detail": null },
+        { "phase": "submit", "status": "unknown", "at": "2026-08-14T09:38:03Z", "detail": "Request timed out with no settlement response observed." },
+        { "phase": "settle", "status": "unknown", "at": null, "detail": null },
+        { "phase": "deliver", "status": "fail", "at": "2026-08-14T09:38:33Z", "detail": "The resource was not delivered." }
+      ],
+      "diagnosis": {
+        "code": "AMBIGUOUS_PAYMENT",
+        "title": "The payment may have been authorized without the resource arriving",
+        "explanation": "The authorization was submitted and no settlement response came back. From the client's side there is no way to tell whether the merchant received and held a valid authorization or never received it at all. Both look identical from here.",
+        "guidance": "Do not retry this request. The merchant may hold a valid authorization, and a retry can result in paying twice. Check the settlement status on-chain or with the merchant before issuing another request; tx402's EXPOSE fence is what keeps this state durable rather than silently retried.",
+        "do_not_retry": true
+      },
+      "redaction": { "applied": true, "fields_redacted": 3 }
+    }
+  }
+}

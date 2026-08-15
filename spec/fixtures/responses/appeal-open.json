@@ -1,0 +1,37 @@
+{
+  "api_version": "v1",
+  "tool": "appeal",
+  "generated_at": "2026-08-15T12:00:00Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/appeal"
+  },
+  "warnings": [],
+  "data": {
+    "appeal": {
+      "id": "01JZZZZZZZZZZZZZZZZZZZZZZZ",
+      "origin": "https://api.example.com",
+      "endpoint_id": null,
+      "claim_id": "00000000000000000000000000000000",
+      "disputed": "facilitator_known",
+      "remedy": "correction",
+      "argument": "Our facilitator answers /supported; please re-check the published list.",
+      "state": "open",
+      "resolution": null,
+      "correction_change_id": null,
+      "created_at": "2026-08-15T12:00:00Z",
+      "resolved_at": null
+    },
+    "removal": null,
+    "next_steps": [
+      "Recorded. A correction is reviewed by a person: we do not know yet whether the observation or the objection is right, and a route that simply took your word for it would make the corpus editable by whoever controls a domain.",
+      "An upheld correction is APPENDED to the change log as a `correction` row pointing at the record it corrects. Nothing is overwritten, so what we published and what we corrected both stay visible.",
+      "Follow it with GET /api/v1/claim/00000000000000000000000000000000 — every appeal for https://api.example.com is listed on any verified claim for it.",
+      "If the fact you dispute is the score itself, note that the score is arithmetic over the raw signals in the same response: recompute it with the weights in `reasons[]` and tell us which signal is wrong."
+    ]
+  }
+}

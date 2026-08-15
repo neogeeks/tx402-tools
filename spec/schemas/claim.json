@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/claim",
+  "title": "Endpoint claim response",
+  "description": "POST /api/v1/claim, POST /api/v1/claim/:id/verify and GET /api/v1/claim/:id. an operator must be able to claim an endpoint, see exactly what was observed, correct a wrong fact and opt out — shipped WITH the first public risk score. There is no account and no contact detail anywhere in this shape: control of the domain is the whole of the proof. Added by;",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "claim" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "origin",
+            "method",
+            "state",
+            "challenge_token",
+            "instructions",
+            "created_at",
+            "verified_at",
+            "token_expires_at",
+            "observed",
+            "appeals",
+            "next_steps"
+          ],
+          "properties": {
+            "id": {
+              "type": ["string", "null"],
+              "description": "128 random bits. THE RETURN ADDRESS: there is no account, so this is what reads the dossier and files an appeal.",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "origin": { "type": ["string", "null"], "maxLength": 4096 },
+            "method": { "type": ["string", "null"], "enum": ["dns-txt", "well-known", null] },
+            "state": {
+              "type": ["string", "null"],
+              "enum": ["pending", "verified", "failed", "revoked", null]
+            },
+            "challenge_token": {
+              "type": ["string", "null"],
+              "description": "Only while pending. The value the operator publishes.",
+              "maxLength": 200
+            },
+            "created_at": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                { "type": "null" }
+              ]
+            },
+            "verified_at": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                { "type": "null" }
+              ]
+            },
+            "token_expires_at": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+                { "type": "null" }
+              ]
+            },
+
+            "instructions": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["method", "summary", "record_name", "publish", "url"],
+                  "properties": {
+                    "method": { "type": "string", "enum": ["dns-txt", "well-known"] },
+                    "summary": { "type": "string", "maxLength": 500 },
+                    "record_name": { "type": ["string", "null"], "maxLength": 255 },
+                    "publish": { "type": "string", "maxLength": 200 },
+                    "url": { "type": ["string", "null"], "maxLength": 4096 }
+                  }
+                },
+                { "type": "null" }
+              ]
+            },
+
+            "next_steps": { "type": "array", "items": { "type": "string", "maxLength": 1000 } },
+
+            "observed": {
+              "description": "Null until the claim is verified. Everything we hold about the origin, per endpoint.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["endpoints", "changes", "opted_out"],
+                  "properties": {
+                    "opted_out": { "type": "boolean" },
+                    "endpoints": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/ObservedEndpoint" }
+                    },
+                    "changes": {
+                      "type": "array",
+                      "items": { "$ref": "#/$defs/ObservedChange" }
+                    }
+                  }
+                },
+                { "type": "null" }
+              ]
+            },
+
+            "appeals": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/appeal#/$defs/Appeal" }
+                },
+                { "type": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+    "ObservedEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_url",
+        "status",
+        "first_seen",
+        "last_seen",
+        "scan_count",
+        "has_history",
+        "terms",
+        "signals",
+        "risk",
+        "score_as_served"
+      ],
+      "properties": {
+        "canonical_url": { "type": "string", "maxLength": 4096 },
+        "status": { "type": "string", "maxLength": 32 },
+        "first_seen": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+            { "type": "null" }
+          ]
+        },
+        "last_seen": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+            { "type": "null" }
+          ]
+        },
+        "scan_count": { "type": "integer", "minimum": 0 },
+        "has_history": {
+          "type": "boolean",
+          "description": "true only when scan_count > 1. One scan is a first observation, not a history."
+        },
+        "terms": { "type": ["object", "null"] },
+        "signals": {
+          "type": "array",
+          "description": "The raw scoring input, so the score can be recomputed rather than believed.",
+          "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Signal" }
+        },
+        "risk": {
+          "description": "Recomputed live from `signals`. `reproduced` is the same number derived a second time from reasons[] alone.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["score", "band", "score_version", "reproduced", "band_note", "reasons"],
+              "properties": {
+                "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "band": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Band" },
+                "score_version": {
+                  "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ScoreVersion"
+                },
+                "reproduced": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "band_note": {
+                  "type": "string",
+                  "description": "SPEC §4.5: a band never travels without the sentence that says what a band is.",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/RiskReason" }
+                }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "score_as_served": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The stored row, exactly as it was written. SPEC §7: historical scores are never recomputed.",
+          "required": ["score", "band", "score_version"],
+          "properties": {
+            "score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+            "band": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Band" },
+                { "type": "null" }
+              ]
+            },
+            "score_version": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ScoreVersion" },
+                { "type": "null" }
+              ]
+            }
+          }
+        }
+      }
+    },
+
+    "ObservedChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A term_changes row. Same shape as common.json's TermChange plus `corrects_id`, which that landed definition does not carry —",
+      "required": ["id", "changed_at", "change_kind", "field", "old_value", "new_value"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "changed_at": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+        "change_kind": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ChangeKind" },
+        "field": { "type": "string", "maxLength": 64 },
+        "old_value": { "type": ["string", "null"], "maxLength": 2000 },
+        "new_value": { "type": ["string", "null"], "maxLength": 2000 },
+        "detected_by": { "type": "string", "enum": ["crawler", "human", "api", "backfill"] },
+        "score_version": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ScoreVersion" },
+            { "type": "null" }
+          ]
+        },
+        "corrects_id": {
+          "type": ["string", "null"],
+          "description": "The row this one corrects. A correction is APPENDED; nothing is ever rewritten.",
+          "maxLength": 64
+        }
+      }
+    }
+  }
+}

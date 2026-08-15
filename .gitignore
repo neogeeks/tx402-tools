@@ -1,0 +1,13 @@
+# The implementation plan is local-only: it is the working document the
+# sessions execute against, not part of the published repo.
+plan.md
+
+node_modules/
+.wrangler/
+dist/
+.dev.vars
+.env
+.DS_Store
+*.log
+coverage/
+worker-configuration.d.ts

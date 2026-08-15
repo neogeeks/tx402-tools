@@ -1,0 +1,125 @@
+{
+  "api_version": "v1",
+  "tool": "inspect",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": "v1",
+    "tx402_version": "0.2.0",
+    "schema": "https://tools.tx402.io/api/v1/schemas/inspect"
+  },
+  "warnings": [
+    { "code": "NO_HISTORY", "message": "First time we have seen this endpoint." }
+  ],
+  "data": {
+    "target": {
+      "url": "https://api.example.com/v1/geocode",
+      "canonical_url": "https://api.example.com/v1/geocode",
+      "endpoint_id": "3f2a91b0c74d8e15a6b3092d4e7f1c88",
+      "origin": "https://api.example.com",
+      "host": "api.example.com"
+    },
+    "probe": {
+      "observed_at": "2026-08-14T09:41:05Z",
+      "http_status": 402,
+      "latency_ms": 184,
+      "redirect_count": 0,
+      "tls": { "ok": true, "protocol": "TLSv1.3" },
+      "bytes_read": 412,
+      "served_from_cache": false,
+      "cache_age_seconds": null
+    },
+    "challenge": {
+      "wire_form": "v2-header",
+      "x402_version": 2,
+      "valid": true,
+      "decode_error": null,
+      "requirement_count": 1,
+      "raw_bytes": 412,
+      "hash": "9f2c4a1d7e0b3856c9f24a1d7e0b3856c9f24a1d7e0b3856c9f24a1d7e0b3856",
+      "raw": null,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "network_recognized": true,
+          "asset": { "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "symbol": "USDC", "decimals": 6, "recognized": true },
+          "amount_atomic": "1000",
+          "amount_decimal": "0.001000",
+          "pay_to": "0x209693Bc6afc0C5328bA36FaF03C514EF312287C",
+          "pay_to_dynamic": false,
+          "max_timeout_seconds": 300,
+          "resource": "https://api.example.com/v1/geocode",
+          "mime_type": "application/json",
+          "description": "Geocode one address",
+          "facilitator": "https://facilitator.example.com",
+          "extra": { "name": "USD Coin", "version": "2" }
+        }
+      ]
+    },
+    "terms": {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "network_recognized": true,
+      "asset": { "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "symbol": "USDC", "decimals": 6, "recognized": true },
+      "amount_atomic": "1000",
+      "amount_decimal": "0.001000",
+      "pay_to": "0x209693Bc6afc0C5328bA36FaF03C514EF312287C",
+      "pay_to_dynamic": false,
+      "max_timeout_seconds": 300,
+      "resource": "https://api.example.com/v1/geocode",
+      "mime_type": "application/json",
+      "description": "Geocode one address",
+      "facilitator": "https://facilitator.example.com",
+      "extra": { "name": "USD Coin", "version": "2" }
+    },
+    "checks": [
+      { "id": "wire_form_detected", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "base64_strict", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "amount_atomic_canonical", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "resource_origin_match", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "amount_within_observed_range", "status": "skip", "offline": false, "reason": "no_history", "detail": "No prior observations of this endpoint." }
+    ],
+    "signals": [
+      { "id": "probe_ok", "value": true, "observed": true, "detail": null },
+      { "id": "challenge_decodes", "value": true, "observed": true, "detail": null },
+      { "id": "wire_form", "value": "v2-header", "observed": true, "detail": null },
+      { "id": "resource_origin_match", "value": true, "observed": true, "detail": null },
+      { "id": "facilitator_known", "value": true, "observed": true, "detail": null },
+      { "id": "pay_to_declared_dynamic", "value": false, "observed": true, "detail": null },
+      { "id": "availability_30d", "value": null, "observed": false, "detail": "No history yet." }
+    ],
+    "risk": {
+      "score": 86,
+      "band": "LOW",
+      "score_version": "v1",
+      "confidence": "static_only",
+      "signals_evaluated": 14,
+      "reasons": [
+        { "signal_id": "challenge_decodes", "status": "pass", "weight": 20, "message": "The challenge decodes under the strict x402 decoder." },
+        { "signal_id": "facilitator_known", "status": "pass", "weight": 8, "message": "The facilitator is on the published list." },
+        { "signal_id": "availability_30d", "status": "skip", "weight": 0, "message": "No history yet, so availability was not scored." }
+      ],
+      "methodology_url": "https://tools.tx402.io/methodology?v=v1"
+    },
+    "observed": {
+      "has_history": false,
+      "first_seen": "2026-08-14T09:41:05Z",
+      "last_seen": "2026-08-14T09:41:05Z",
+      "scan_count": 1,
+      "availability_30d": null,
+      "latency_p50_ms": null,
+      "recent_changes": []
+    },
+    "links": {
+      "html": "https://tools.tx402.io/inspect?url=https%3A%2F%2Fapi.example.com%2Fv1%2Fgeocode",
+      "markdown": "https://tools.tx402.io/inspect.md?url=https%3A%2F%2Fapi.example.com%2Fv1%2Fgeocode",
+      "json": "https://tools.tx402.io/api/v1/inspect?url=https%3A%2F%2Fapi.example.com%2Fv1%2Fgeocode",
+      "history": "https://tools.tx402.io/history?url=https%3A%2F%2Fapi.example.com%2Fv1%2Fgeocode",
+      "methodology": "https://tools.tx402.io/methodology?v=v1",
+      "share": null
+    }
+  }
+}

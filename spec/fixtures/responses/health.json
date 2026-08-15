@@ -1,0 +1,25 @@
+{
+  "api_version": "v1",
+  "tool": "health",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/health"
+  },
+  "warnings": [],
+  "data": {
+    "ok": true,
+    "bindings": { "db": true, "analytics": true, "queue": true, "limiter": true, "assets": true },
+    "versions": {
+      "api_version": "v1",
+      "score_version": null,
+      "tx402_version": null,
+      "schema_version": "1",
+      "environment": "production"
+    }
+  }
+}

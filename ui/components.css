@@ -1,0 +1,645 @@
+/* ==================================================================
+   tx402 tools — component primitives
+   Every rule here resolves colour through a token from tokens.css.
+   There is not a single literal colour in this file and `pnpm gate:tokens`
+   keeps it that way. Sessions COMPOSE these; they do not invent new ones.
+   ================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, pre, .mono { font-family: var(--mono); }
+
+/* Inline code on this site is almost always something with no spaces in it —
+   an endpoint URL, a payout address, an endpoint id, a user-agent string. Left
+   alone it is one unbreakable word, and one of them is enough to push the whole
+   page wider than the screen: `/crawler` scrolled 191px at 375px on the single
+   token `tx402-tools-crawler/1.0 (+https://tools.tx402.io/crawler)`.
+
+   `pre` is deliberately NOT included — a code BLOCK keeps its line structure
+   and scrolls inside its own box (`.code pre`), because rewrapping a snippet
+   someone is about to copy changes what they copy. */
+code { overflow-wrap: break-word; }
+pre code { overflow-wrap: normal; }
+
+/* EVERY `pre` scrolls in its own box, not just the ones inside the `.code`
+   component. `/crawler` writes a bare `<pre>` for the crawler's user-agent
+   string and inherited nothing, so a 549px line pushed a 375px page 191px
+   sideways. A preformatted block that can widen the page is a bug wherever it
+   appears, so the default belongs here rather than in one component. */
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: var(--s2);
+  padding: var(--s2) var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  z-index: 10;
+}
+.skip-link:focus { left: var(--s4); }
+
+/* ------------------------------ shell ------------------------------ */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.wrap-narrow { max-width: var(--narroww); }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--header-bg);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  min-height: 64px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-weight: 650;
+  color: var(--text);
+  letter-spacing: -.01em;
+  white-space: nowrap;
+}
+.brand:hover { text-decoration: none; color: var(--accent); }
+.brand .brand-sub { color: var(--text-faint); font-weight: 400; }
+/* The mark strokes with currentColor, so it follows the brand link's colour
+   through hover and both themes without a second rule. */
+.brand svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
+.brand:hover svg { color: inherit; }
+
+/* The menu control is a checkbox whose `:checked` state CSS reads directly, so
+   the nav is an ordinary sibling element at every width — no `<details>`, whose
+   closed contents the browser skips for layout in a way author CSS cannot undo.
+   On a wide screen the control simply is not rendered. */
+.nav-checkbox, .nav-toggle { display: none; }
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  margin-left: auto;
+  font-size: .9rem;
+}
+.nav a { color: var(--text-muted); }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--text); text-decoration: none; }
+.nav a[aria-current='page'] { font-weight: 600; }
+
+/* ---------------------------- theme toggle ------------------------- */
+/* Both icons are in the markup and CSS picks one, so the button is correct on
+   first paint before any script runs. Dark is the default, so the button
+   offers the sun; the rules below flip it for every way a page can be light. */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+.theme-toggle svg { width: 17px; height: 17px; }
+
+.icon-sun { display: block; }
+.icon-moon { display: none; }
+
+:root[data-theme='light'] .icon-sun { display: none; }
+:root[data-theme='light'] .icon-moon { display: block; }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .icon-sun { display: none; }
+  :root:not([data-theme='dark']) .icon-moon { display: block; }
+}
+
+main { flex: 1; padding-block: var(--s7) var(--s8); }
+
+.page-head { margin-bottom: var(--s6); }
+.page-head h1 {
+  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  margin: 0 0 var(--s3);
+}
+.page-head p {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 62ch;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  color: var(--text-faint);
+  font-size: .85rem;
+  padding-block: var(--s6);
+}
+.site-footer .wrap { display: flex; flex-wrap: wrap; gap: var(--s5); align-items: baseline; }
+.site-footer a { color: var(--text-muted); }
+.site-footer .footer-brand { display: inline-flex; align-items: center; gap: var(--s2); }
+.site-footer .brand { font-size: .9rem; }
+.site-footer .brand svg { width: 18px; height: 18px; }
+.site-footer .footer-links { display: flex; flex-wrap: wrap; gap: var(--s4); margin-left: auto; }
+
+/* --------------------------- disclaimer --------------------------- */
+/* a band describes the confidence of OUR OBSERVATIONS, not the
+   operator, and the page has to say so above the fold. This is that line. It
+   is a component so it cannot be forgotten on one page out of seven. */
+
+.observation-note {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-line);
+  background: var(--accent-soft);
+  border-radius: var(--r);
+  padding: var(--s3) var(--s4);
+  color: var(--text-muted);
+  font-size: .875rem;
+  margin-bottom: var(--s5);
+}
+.observation-note strong { color: var(--text); font-weight: 600; }
+
+/* ---------------------------- paste box --------------------------- */
+
+.paste-box {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: var(--s5);
+  box-shadow: var(--shadow);
+}
+.paste-box label {
+  display: block;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: var(--s2);
+}
+.paste-box .row { display: flex; gap: var(--s3); flex-wrap: wrap; align-items: flex-start; }
+.paste-box .row > .field-wrap { flex: 1 1 22rem; }
+.paste-box .cf-turnstile { margin-top: var(--s3); }
+
+.field {
+  width: 100%;
+  height: var(--field-h);
+  padding: 0 var(--s4);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: .9rem;
+}
+textarea.field {
+  height: auto;
+  min-height: 9rem;
+  padding: var(--s3) var(--s4);
+  line-height: 1.5;
+  resize: vertical;
+}
+.field::placeholder { color: var(--text-faint); }
+.field:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: var(--btn-h);
+  padding: 0 var(--s5);
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+.btn:hover { background: var(--btn-bg-hover); text-decoration: none; }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover { background: var(--surface-2); }
+
+.hint { margin: var(--s3) 0 0; font-size: .82rem; color: var(--text-faint); }
+
+/* --------------------------- result card -------------------------- */
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  margin-bottom: var(--s5);
+  overflow: hidden;
+}
+.card > header {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  padding: var(--s4) var(--s5);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.card > header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+.card > header .card-aside { margin-left: auto; color: var(--text-faint); font-size: .82rem; }
+.card > .card-body { padding: var(--s5); }
+/* The question the tool answers, sitting above the description. It is the
+   H3 because it is what a searcher actually typed. */
+.card-question { margin: 0 0 var(--s2); font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
+.card > .card-body > :first-child { margin-top: 0; }
+.card > .card-body > :last-child { margin-bottom: 0; }
+.card > footer {
+  padding: var(--s3) var(--s5);
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: .82rem;
+  color: var(--text-faint);
+}
+
+/* -------------------------- key/value table ----------------------- */
+
+.kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .9rem;
+}
+.kv th, .kv td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--border);
+}
+.kv tr:last-child th, .kv tr:last-child td { border-bottom: 0; }
+.kv th {
+  width: 34%;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.kv td { font-family: var(--mono); word-break: break-word; }
+.kv td.prose { font-family: var(--sans); }
+.kv .kv-note { display: block; font-family: var(--sans); color: var(--text-faint); font-size: .82rem; margin-top: var(--s1); }
+/* "not observed" is not the same as "false" — SPEC §6.3. It renders as
+   absence, never as a value. */
+.kv td.unobserved { color: var(--text-faint); font-style: italic; font-family: var(--sans); }
+
+/* A wide table scrolls inside its own box; the PAGE never scrolls sideways.
+
+   `position: relative` is load-bearing, not cosmetic: it makes this element the
+   containing block for the absolutely-positioned `<caption class="visually-hidden">`
+   inside, which otherwise resolves against the page and drags the document out
+   to the table's full width. See `.visually-hidden` at the foot of this file.
+
+   `overscroll-behavior-x: contain` stops a horizontal swipe that reaches the end
+   of the table from turning into a browser back-navigation, which on a phone is
+   how you lose a report you just generated. */
+.table-scroll {
+  position: relative;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------------------------- status pill ------------------------- */
+/* Every status is carried by TEXT as well as colour — the landing page's rule,
+   and non-negotiable for a tool whose whole output is a judgement. */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: .15rem var(--s3);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.pill::before {
+  content: '';
+  width: .45rem;
+  height: .45rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.pill-ok { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.pill-warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.pill-err { color: var(--err); background: var(--err-soft); border-color: transparent; }
+.pill-idle { color: var(--idle); background: var(--surface-3); }
+.pill-info { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+
+/* ---------------------------- code block -------------------------- */
+
+.code {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+.code > .code-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: .78rem;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+.code > .code-head .code-copy { margin-left: auto; }
+.code pre {
+  margin: 0;
+  padding: var(--s4);
+  overflow-x: auto;
+  font-size: .85rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* ---------------------------- empty state ------------------------- */
+/* an empty corpus is the CORRECT display for an endpoint we have
+   not seen, not a degraded one. It gets a designed state, not an apology. */
+
+.empty {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: var(--s7) var(--s5);
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty h2 {
+  margin: 0 0 var(--s3);
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.empty p { margin: 0 auto; max-width: 52ch; }
+.empty .empty-detail { margin-top: var(--s4); font-size: .82rem; color: var(--text-faint); }
+
+/* ------------------------------ misc ------------------------------ */
+
+.stack > * + * { margin-top: var(--s5); }
+.row-gap { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
+.muted { color: var(--text-muted); }
+.faint { color: var(--text-faint); }
+.small { font-size: .85rem; }
+/* Screen-reader-only text.
+
+   `clip-path` is not decoration here. With `clip` alone this element still
+   participates in layout at its STATIC position, and because it is absolutely
+   positioned its containing block is the nearest POSITIONED ancestor — which,
+   for a <caption> inside a wide table, used to be nothing at all. So every
+   table caption was laid out against the page at the table's far-right edge,
+   escaping the `overflow: auto` its table sits in, and the document grew to
+   the width of the widest table on the page.
+
+   Measured on /compare/onchain-data at 375px: the document scrolled 3664px
+   against a 375px viewport, from 73 captions. Hiding them alone returned it to
+   375px. `clip-path: inset(50%)` clips the painted box, and `.table-scroll`
+   below is a containing block so the static position can no longer escape. */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================== responsive ==============================
+
+   Breakpoints are in `rem`, so they follow the reader's font size rather than
+   a device size. Two of them, and they are the two the SHELL needs — the pages
+   under `ui/pages/` are already mobile-first and upgrade themselves at their
+   own widths.
+
+     ≤ 52rem  phones and small tablets — the shell relayouts
+     ≤ 34rem  small phones — the last things that still do not fit
+
+   The rule everything else follows: **nothing may make the page scroll
+   sideways.** Wide content scrolls inside its own box. A reader who swipes
+   horizontally to read a table must never move the whole page instead.
+   ====================================================================== */
+
+/* Belt and braces for the page itself. If a future component overflows, this
+   turns a broken layout into a clipped one, which is the failure that does not
+   also break `position: sticky` and does not hide the theme toggle offscreen. */
+html { overflow-x: hidden; }
+
+@media (max-width: 52rem) {
+  /* ── header ──────────────────────────────────────────────────────────
+     The nav was `flex-wrap: wrap` with six links, so at 375px it broke into
+     three ragged rows and the sticky header ate ~200px of an 812px viewport
+     — a quarter of the screen, above the fold, on every page.
+
+     It becomes a menu: brand, menu button and theme toggle on one 56px row,
+     and the six links drop below as a panel when the button is pressed. The
+     header stays sticky, because at 56px it can afford to. Nothing here needs
+     a script. */
+
+  /* Visually hidden but NOT `display: none`, so it stays focusable and
+     Space still toggles the menu for a keyboard user. */
+  .nav-checkbox {
+    display: block;
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .nav-checkbox:focus-visible + .nav-toggle {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .site-header .wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-height: 56px;
+  }
+  .site-header .brand { margin-right: auto; }
+
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--text-muted);
+    cursor: pointer;
+    list-style: none;
+  }
+  /* Both are needed: the pseudo-element for WebKit, `list-style` above for
+     everyone else. Without them the native disclosure triangle sits beside
+     the glyph. */
+  .nav-toggle::-webkit-details-marker { display: none; }
+  .nav-toggle::marker { content: ""; }
+  .nav-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+  .nav-toggle svg { width: 20px; height: 20px; }
+  .nav-checkbox:checked + .nav-toggle { color: var(--text); border-color: var(--border-strong); }
+
+  /* A closed menu is closed. */
+  .nav { display: none; }
+
+  /* The panel. Absolute so opening it overlays the page rather than shoving
+     the content down — the header is sticky, and a menu that reflows the
+     article underneath it loses the reader's place. */
+  .nav-checkbox:checked ~ .nav {
+    display: flex;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    flex-direction: column;
+    gap: 0;
+    margin-left: 0;
+    padding: var(--s2) var(--gutter) var(--s3);
+    /* OPAQUE, deliberately. `--header-bg` is translucent and pairs with a
+       blur, which is right for a 56px bar and wrong for a panel with six
+       tappable rows — the article behind it stayed legible straight through
+       the menu. A navigation surface has to be a surface. */
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 1rem;
+  }
+  .nav-checkbox:checked ~ .nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-checkbox:checked ~ .nav a:last-child { border-bottom: 0; }
+
+  /* ── footer ──────────────────────────────────────────────────────────
+     `margin-left: auto` on both link groups pushed them into a single
+     right-aligned clump that wrapped mid-group. Stacked and left-aligned
+     reads as two lists, which is what they are. */
+  .site-footer .wrap {
+    display: grid;
+    gap: var(--s4);
+  }
+  .site-footer .footer-links {
+    margin-left: 0;
+    gap: 0 var(--s4);
+  }
+  /* Same reasoning as the nav: these are the trust links — methodology, opt-out
+     — and they must not be the hardest thing on the page to hit. */
+  .site-footer .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+  }
+  .site-footer .footer-brand { display: block; }
+
+  /* ── shared primitives ───────────────────────────────────────────── */
+
+  /* A nowrap label column forced the table wider than the screen before the
+     value column had said anything. Let it wrap and take a fixed share. */
+  .kv th { white-space: normal; width: 38%; }
+  .kv th, .kv td { padding: var(--s3); }
+
+  main { padding-block: var(--s5) var(--s6); }
+  .page-head { margin-bottom: var(--s5); }
+  .card > .card-body { padding: var(--s4); }
+  .paste-box { padding: var(--s4); }
+
+  /* Full-width controls: a 22rem flex basis does not fit a 375px screen, and
+     a half-width submit button beside a full-width field looks like a bug. */
+  .paste-box .row > .field-wrap { flex: 1 1 100%; }
+  .paste-box .row > .btn,
+  .paste-box .row > button { width: 100%; }
+}
+
+@media (max-width: 34rem) {
+  /* The brand reads "tx402 tools" at every width, in the header and the
+     footer. It is the product's name, not an ornament — dropping the second
+     word on small screens left the site introducing itself as the SDK. */
+
+  .kv th, .kv td { font-size: .85rem; }
+  .code pre { font-size: .8rem; }
+
+  /* The card header's badge sits under the title rather than squeezing it. */
+  .card > header { gap: var(--s2); }
+}

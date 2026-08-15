@@ -1,0 +1,142 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // tx402 tools — one Worker, static assets + JSON API on the SAME ORIGIN
+  //. This file has exactly one owner:, then the integrator.
+  // No contributor edits it. If you need a binding, raise a
+  // §12 open item and route it to the wave's integrator.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  "name": "tx402-tools",
+  "main": "worker/index.ts",
+
+  // Jay.komarraju@gmail.com's Account — the one that holds the tx402-landing
+  // D1. Pinned here because wrangler runs non-interactive in
+  // session shells and would otherwise prompt or pick the wrong account.
+  "account_id": "74223469d1ec184c084925a8d120d93b",
+
+  "compatibility_date": "2026-05-01",
+  // tx402 core uses node:crypto. Required for every server-side
+  // reuse of the SDK — which is all of them (L6).
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": { "enabled": true },
+
+  // Static assets (fonts, icons, og images). The Worker runs first on every
+  // request: it owns /api/*, every tool page, and the content-negotiated
+  // Markdown mirrors (L11). Everything else falls through to env.ASSETS.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": true
+  },
+
+  // CSS is imported as text by the Worker so ui/tokens.css can stay at its
+  // canonical path instead of being copied into./public.
+  "rules": [{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true }],
+
+  // tx402's optional chain adapters, aliased away. Added.
+  //
+  // `tx402`'s `core/chain.ts` reaches its EVM and Solana adapters through lazy
+  // `import`, which keeps @x402/evm, @x402/svm, viem and @solana/kit out of a
+  // Node process that never pays. A BUNDLER gets no such benefit: esbuild
+  // resolves a dynamic import with a static specifier at build time, so without
+  // this every `wrangler deploy` fails on four optional peers this repository
+  // deliberately does not install.
+  //
+  // Installing them instead would put EIP-3009 signing and Solana transaction
+  // building into a repository that must never be able to construct a payment
+  //. So they are aliased to a module whose every export throws.
+  // Nothing here ever calls a chain adapter: the policy engine, the challenge
+  // decoder, the spend ledger and the route ordering are all reachable without
+  // one, and that is the whole of what these tools use.
+  "alias": {
+    "@x402/evm/exact/client": "./worker/no-chain-adapter.cjs",
+    "@x402/svm": "./worker/no-chain-adapter.cjs",
+    "@x402/svm/exact/client": "./worker/no-chain-adapter.cjs",
+    "@solana/kit": "./worker/no-chain-adapter.cjs",
+    "@solana-program/token": "./worker/no-chain-adapter.cjs"
+  },
+
+  // endpoints · terms_current · term_changes (append-only) · scans · …
+  // Complete v1 schema lands in migrations/0001_init.sql so no wave-1
+  // or wave-2 session needs a migration.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tx402-tools",
+      "database_id": "eb3cf6f5-da3e-48c7-9452-67a4336ba364",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Availability + latency pings: high volume, aggregate-only, sampled.
+  // The counterpart to D1 in the storage split.
+  "analytics_engine_datasets": [
+    { "binding": "PROBES", "dataset": "tx402_tools_probes" }
+  ],
+
+  // Crawler fan-out. Producer + consumer are declared now so no later
+  // session has to touch this file.
+  "queues": {
+    "producers": [{ "binding": "CRAWL_QUEUE", "queue": "tx402-tools-crawl" }],
+    "consumers": [
+      {
+        "queue": "tx402-tools-crawl",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+        "max_retries": 3,
+        "max_concurrency": 4,
+        "dead_letter_queue": "tx402-tools-crawl-dlq"
+      }
+    ]
+  },
+
+  // Crawler schedule. The handler is a no-op until CRAWLER_ENABLED = "1".
+  //
+  // ONE cron, not three. Cron triggers are limited PER ACCOUNT (5 on the
+  // Workers Free plan), and this account is already close to that ceiling —
+  // declaring a trigger here takes budget away from every other Worker on the
+  // account, including tx402-landing.; it contradicts
+  // conclusion that the account is on a paid plan.
+  //
+  // So gets a 15-minute tick and dispatches inside `scheduled`: pump the
+  // queue every tick, sweep the corpus on the 6-hourly boundaries, refresh
+  // seeds once a day. Wall-clock branching in code costs nothing and does not
+  // consume a shared account-level resource.
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+
+  // Per-endpoint probe politeness + rate limiting.
+  "durable_objects": {
+    "bindings": [{ "name": "PROBE_LIMITER", "class_name": "ProbeLimiter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ProbeLimiter"] }],
+
+  "vars": {
+    "ENVIRONMENT": "production",
+    "PUBLIC_ORIGIN": "https://tools.tx402.io",
+    // Kill switch for the crawler. Flipped to "1" at the wave-2 integration,
+    // once its ingestion merged — a var change, not a code change. Set it back
+    // to "0" to stop all crawling without a code change or a rollback.
+    "CRAWLER_ENABLED": "1",
+
+    // Account id, for the Analytics Engine SQL API. The
+    // top-level `account_id` above is wrangler's deploy-targeting field and is
+    // NOT readable by the Worker at runtime, so the value is repeated here as a
+    // var. Not a secret — it appears in every deploy log. Its companion
+    // CF_ANALYTICS_TOKEN is a Worker secret (`wrangler secret put`) and must
+    // never appear in this file.
+    "CF_ACCOUNT_ID": "74223469d1ec184c084925a8d120d93b",
+    // Turnstile cannot be provisioned by the OAuth token: the
+    // widget is created in the dashboard. The site key is public and lives
+    // here; TURNSTILE_SECRET_KEY is a Worker secret. Empty ⇒ Turnstile is
+    // skipped, which is correct for dev and NOT acceptable in production.
+    "TURNSTILE_SITE_KEY": ""
+  },
+
+  "routes": [{ "pattern": "tools.tx402.io", "custom_domain": true }]
+}

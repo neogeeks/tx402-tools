@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/envelope",
+  "title": "Success envelope",
+  "description": "Every successful response from every tool. SPEC §2. Tool schemas compose this with a constrained `data`, so the envelope cannot drift per tool.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "tool", "generated_at", "meta", "warnings", "data"],
+  "properties": {
+    "api_version": { "type": "string", "const": "v1" },
+    "tool": { "type": "string", "pattern": "^[a-z][a-z0-9_/-]*$" },
+    "generated_at": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+    "meta": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Meta" },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Warning" },
+      "description": "Always present, always an array. A warning is a fact about the answer's completeness, never an error."
+    },
+    "data": true
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/policy",
+  "title": "Policy evaluate response",
+  "description": "SPEC §5.3. The engine is the real PolicyEngine imported from tx402 and run server-side — a playground that shows a different error than the SDK would raise is worse than no playground.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "policy" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["decision", "selected_requirement", "evaluation", "error", "tx402_version", "engine"],
+          "properties": {
+            "decision": { "type": "string", "enum": ["allow", "deny"] },
+            "selected_requirement": {
+              "oneOf": [
+                { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Requirement" },
+                { "type": "null" }
+              ]
+            },
+            "evaluation": {
+              "type": "array",
+              "description": "Ordered. Stages after the first fail report 'skip'. Showing the order is the teaching moment of the tool.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["stage", "result"],
+                "properties": {
+                  "stage": {
+                    "type": "string",
+                    "enum": ["domain", "network", "scheme_asset", "recipient", "per_request", "rolling_hour", "total", "routing"]
+                  },
+                  "result": { "type": "string", "enum": ["pass", "fail", "skip"] },
+                  "detail": { "type": ["string", "null"], "maxLength": 1000 }
+                }
+              }
+            },
+            "error": {
+              "description": "The EXACT typed error the SDK would raise, or null when the decision is allow.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "code", "message"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The SDK's exception class name, e.g. BudgetExceededError.",
+                      "pattern": "^[A-Z][A-Za-z0-9]*Error$"
+                    },
+                    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+                    "message": { "type": "string", "maxLength": 1000 },
+                    "details": { "type": ["object", "null"] }
+                  }
+                },
+                { "type": "null" }
+              ]
+            },
+            "tx402_version": { "type": ["string", "null"] },
+            "engine": { "type": "string", "const": "PolicyEngine" }
+          }
+        }
+      }
+    }
+  ]
+}

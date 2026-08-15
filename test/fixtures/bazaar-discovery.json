@@ -1,0 +1,895 @@
+{
+  "_comment": "Real /discovery/resources responses, captured 2026-08-14. Trimmed to a few items each; shapes are verbatim.",
+  "captured_at": "2026-08-14",
+  "cdp": {
+    "items": [
+      {
+        "accepts": [
+          {
+            "amount": "3000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "currency": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "extra": {
+              "credentialTypes": [
+                "authorization"
+              ],
+              "name": "USD Coin",
+              "version": "2"
+            },
+            "maxTimeoutSeconds": 3600,
+            "network": "eip155:8453",
+            "payTo": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "recipient": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "scheme": "exact"
+          },
+          {
+            "amount": "3000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "currency": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "extra": {
+              "name": "USD Coin",
+              "receiverAuthorizer": "0x11dF9F6280632aB8F12926b3f569E493EaEcf81b",
+              "version": "2",
+              "withdrawDelay": 86400
+            },
+            "maxTimeoutSeconds": 3600,
+            "network": "eip155:8453",
+            "payTo": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "recipient": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "scheme": "batch-settlement"
+          }
+        ],
+        "description": "ERC20 token balance for any Ethereum wallet - USDC, USDT, DAI, or any token - via balanceOf (eth_call) on OneSource live Ethereum RPC",
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "body": {
+                  "account": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+                  "network": "ethereum",
+                  "token": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+                },
+                "method": "GET",
+                "queryParams": {
+                  "account": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+                  "network": "ethereum",
+                  "token": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+                },
+                "type": "http"
+              },
+              "output": {
+                "example": {
+                  "account": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+                  "balance": "1234567890",
+                  "decimals": 6,
+                  "symbol": "USDT",
+                  "token": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+                },
+                "type": "json"
+              }
+            },
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "properties": {
+                "input": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "body": {
+                      "properties": {
+                        "account": {
+                          "pattern": "^0x[a-fA-F0-9]{40}$",
+                          "type": "string"
+                        },
+                        "network": {
+                          "default": "ethereum",
+                          "enum": [
+                            "ethereum",
+                            "sepolia",
+                            "robinhood"
+                          ],
+                          "type": "string"
+                        },
+                        "token": {
+                          "pattern": "^0x[a-fA-F0-9]{40}$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "account",
+                        "token"
+                      ],
+                      "type": "object"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET",
+                        "HEAD",
+                        "DELETE"
+                      ],
+                      "type": "string"
+                    },
+                    "queryParams": {
+                      "properties": {
+                        "account": {
+                          "pattern": "^0x[a-fA-F0-9]{40}$",
+                          "type": "string"
+                        },
+                        "network": {
+                          "default": "ethereum",
+                          "enum": [
+                            "ethereum",
+                            "sepolia",
+                            "robinhood"
+                          ],
+                          "type": "string"
+                        },
+                        "token": {
+                          "pattern": "^0x[a-fA-F0-9]{40}$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "account",
+                        "token"
+                      ],
+                      "type": "object"
+                    },
+                    "type": {
+                      "const": "http",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "method"
+                  ],
+                  "type": "object"
+                },
+                "output": {
+                  "properties": {
+                    "example": {
+                      "properties": {
+                        "data": {
+                          "description": "Response payload",
+                          "type": "object"
+                        },
+                        "error": {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "meta": {
+                          "properties": {
+                            "cost_usdc": {
+                              "type": "string"
+                            },
+                            "endpoint": {
+                              "type": "string"
+                            },
+                            "network": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "input"
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "lastUpdated": "2026-08-15T01:14:25.639Z",
+        "quality": {
+          "l30DaysTotalCalls": 819,
+          "l30DaysUniquePayers": 815,
+          "lastCalledAt": "2026-08-14T23:14:48.799Z"
+        },
+        "resource": "https://api.onesource.io/api/chain/erc20-balance",
+        "type": "http",
+        "x402Version": 2
+      },
+      {
+        "accepts": [
+          {
+            "amount": "5000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "currency": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "extra": {
+              "credentialTypes": [
+                "authorization"
+              ],
+              "name": "USD Coin",
+              "version": "2"
+            },
+            "maxTimeoutSeconds": 3600,
+            "network": "eip155:8453",
+            "payTo": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "recipient": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "scheme": "exact"
+          },
+          {
+            "amount": "5000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "currency": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "extra": {
+              "name": "USD Coin",
+              "receiverAuthorizer": "0x11dF9F6280632aB8F12926b3f569E493EaEcf81b",
+              "version": "2",
+              "withdrawDelay": 86400
+            },
+            "maxTimeoutSeconds": 3600,
+            "network": "eip155:8453",
+            "payTo": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "recipient": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "scheme": "batch-settlement"
+          }
+        ],
+        "description": "ENS resolve - turn a.eth name into an address, or an address into its primary.eth name, via eth_call on OneSource live Ethereum RPC",
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "body": {
+                  "input": "vitalik.eth",
+                  "network": "ethereum"
+                },
+                "method": "GET",
+                "queryParams": {
+                  "input": "vitalik.eth",
+                  "network": "ethereum"
+                },
+                "type": "http"
+              },
+              "output": {
+                "example": {
+                  "address": "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+                  "input": "vitalik.eth",
+                  "mode": "forward"
+                },
+                "type": "json"
+              }
+            },
+            "routeTemplate": "/api/chain/ens/:input",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "properties": {
+                "input": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "body": {
+                      "properties": {
+                        "input": {
+                          "oneOf": [
+                            {
+                              "pattern": "^0x[a-fA-F0-9]{40}$",
+                              "type": "string"
+                            },
+                            {
+                              "pattern": ".+\\.eth$",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "network": {
+                          "default": "ethereum",
+                          "enum": [
+                            "ethereum",
+                            "sepolia",
+                            "robinhood"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "input"
+                      ],
+                      "type": "object"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET",
+                        "HEAD",
+                        "DELETE"
+                      ],
+                      "type": "string"
+                    },
+                    "queryParams": {
+                      "properties": {
+                        "input": {
+                          "oneOf": [
+                            {
+                              "pattern": "^0x[a-fA-F0-9]{40}$",
+                              "type": "string"
+                            },
+                            {
+                              "pattern": ".+\\.eth$",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "network": {
+                          "default": "ethereum",
+                          "enum": [
+                            "ethereum",
+                            "sepolia",
+                            "robinhood"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "input"
+                      ],
+                      "type": "object"
+                    },
+                    "type": {
+                      "const": "http",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "method"
+                  ],
+                  "type": "object"
+                },
+                "output": {
+                  "properties": {
+                    "example": {
+                      "properties": {
+                        "data": {
+                          "description": "Response payload",
+                          "type": "object"
+                        },
+                        "error": {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "meta": {
+                          "properties": {
+                            "cost_usdc": {
+                              "type": "string"
+                            },
+                            "endpoint": {
+                              "type": "string"
+                            },
+                            "network": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "input"
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "lastUpdated": "2026-08-15T01:15:45.389Z",
+        "quality": {
+          "l30DaysTotalCalls": 815,
+          "l30DaysUniquePayers": 807,
+          "lastCalledAt": "2026-08-14T21:37:37.664Z"
+        },
+        "resource": "https://api.onesource.io/api/chain/ens/:input",
+        "type": "http",
+        "x402Version": 2
+      },
+      {
+        "accepts": [
+          {
+            "amount": "1000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "currency": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "extra": {
+              "credentialTypes": [
+                "authorization"
+              ],
+              "name": "USD Coin",
+              "version": "2"
+            },
+            "maxTimeoutSeconds": 3600,
+            "network": "eip155:8453",
+            "payTo": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "recipient": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "scheme": "exact"
+          },
+          {
+            "amount": "1000",
+            "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "currency": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "extra": {
+              "name": "USD Coin",
+              "receiverAuthorizer": "0x11dF9F6280632aB8F12926b3f569E493EaEcf81b",
+              "version": "2",
+              "withdrawDelay": 86400
+            },
+            "maxTimeoutSeconds": 3600,
+            "network": "eip155:8453",
+            "payTo": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "recipient": "0x52E29e0d2Aa49bfBfC548C0A9F2196F4aa51f3ea",
+            "scheme": "batch-settlement"
+          }
+        ],
+        "description": "Latest Ethereum block height - current chain tip via eth_blockNumber",
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "body": {
+                  "network": "ethereum"
+                },
+                "method": "GET",
+                "queryParams": {
+                  "network": "ethereum"
+                },
+                "type": "http"
+              },
+              "output": {
+                "example": {
+                  "block_number": "0x133da1e",
+                  "network": "ethereum"
+                },
+                "type": "json"
+              }
+            },
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "properties": {
+                "input": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "body": {
+                      "properties": {
+                        "network": {
+                          "default": "ethereum",
+                          "enum": [
+                            "ethereum",
+                            "sepolia",
+                            "robinhood"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET",
+                        "HEAD",
+                        "DELETE"
+                      ],
+                      "type": "string"
+                    },
+                    "queryParams": {
+                      "properties": {
+                        "network": {
+                          "default": "ethereum",
+                          "enum": [
+                            "ethereum",
+                            "sepolia",
+                            "robinhood"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": {
+                      "const": "http",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "method"
+                  ],
+                  "type": "object"
+                },
+                "output": {
+                  "properties": {
+                    "example": {
+                      "properties": {
+                        "data": {
+                          "description": "Response payload",
+                          "type": "object"
+                        },
+                        "error": {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "meta": {
+                          "properties": {
+                            "cost_usdc": {
+                              "type": "string"
+                            },
+                            "endpoint": {
+                              "type": "string"
+                            },
+                            "network": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "input"
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "lastUpdated": "2026-08-15T01:15:52.531Z",
+        "quality": {
+          "l30DaysTotalCalls": 1096,
+          "l30DaysUniquePayers": 761,
+          "lastCalledAt": "2026-08-14T23:10:15.564Z"
+        },
+        "resource": "https://api.onesource.io/api/chain/block-number",
+        "type": "http",
+        "x402Version": 2
+      }
+    ],
+    "pagination": {
+      "limit": 100,
+      "offset": 0,
+      "total": 15073
+    },
+    "x402Version": 2
+  },
+  "solvador": {
+    "x402Version": 2,
+    "items": [
+      {
+        "resource": "https://agent402.tools/api/hash",
+        "type": "http",
+        "x402Version": 2,
+        "accepts": [
+          {
+            "asset": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+            "extra": {
+              "name": "USD Coin",
+              "version": "2"
+            },
+            "payTo": "0xaBF4FAbd7c416fB67202E5f9002389Fc75e2a9D0",
+            "amount": "2000",
+            "scheme": "exact",
+            "network": "eip155:10",
+            "maxTimeoutSeconds": 300
+          }
+        ],
+        "lastUpdated": "2026-08-14T14:21:45.104Z",
+        "description": "Cryptographic hash of a text string. Algorithms: sha256 (default), sha512, sha1, md5. Returns hex and base64 digests.",
+        "mimeType": "application/json",
+        "serviceName": "Agent402.tools",
+        "tags": [
+          "web",
+          "tools",
+          "agents",
+          "x402",
+          "encoding"
+        ],
+        "iconUrl": "https://agent402.tools/favicon.ico",
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "body": {
+                  "algo": "sha256",
+                  "text": "hello world"
+                },
+                "type": "http",
+                "method": "POST",
+                "bodyType": "json"
+              },
+              "output": {
+                "type": "json",
+                "example": {
+                  "hex": "b94d27…",
+                  "algo": "sha256",
+                  "base64": "uU0n…"
+                }
+              }
+            },
+            "schema": {
+              "type": "object",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "required": [
+                "input"
+              ],
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "method",
+                    "bodyType",
+                    "body"
+                  ],
+                  "properties": {
+                    "body": {
+                      "required": [
+                        "text"
+                      ],
+                      "properties": {
+                        "algo": {
+                          "type": "string",
+                          "description": "sha256 | sha512 | sha1 | md5"
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "Text to hash (max 100KB)"
+                        }
+                      }
+                    },
+                    "type": {
+                      "type": "string",
+                      "const": "http"
+                    },
+                    "method": {
+                      "enum": [
+                        "POST"
+                      ],
+                      "type": "string"
+                    },
+                    "bodyType": {
+                      "enum": [
+                        "json",
+                        "form-data",
+                        "text"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "output": {
+                  "type": "object",
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "builder-code": {
+            "info": {
+              "a": "bc_b4aw4uzd"
+            },
+            "schema": {
+              "type": "object",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "properties": {
+                "a": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,32}$",
+                  "description": "App builder code"
+                },
+                "s": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_]{1,32}$"
+                  },
+                  "description": "Service builder codes"
+                },
+                "w": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,32}$",
+                  "description": "Wallet builder code"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      {
+        "resource": "https://agent402.tools/api/treasury-yield-curve",
+        "type": "http",
+        "x402Version": 2,
+        "accepts": [
+          {
+            "asset": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+            "extra": {
+              "name": "USD Coin",
+              "version": "2"
+            },
+            "payTo": "0xaBF4FAbd7c416fB67202E5f9002389Fc75e2a9D0",
+            "amount": "11000",
+            "scheme": "exact",
+            "network": "eip155:10",
+            "maxTimeoutSeconds": 300
+          }
+        ],
+        "lastUpdated": "2026-07-28T03:27:43.235Z",
+        "description": "Latest US Treasury daily constant-maturity yields (1mo, 3mo, 6mo, 1y, 2y, 3y, 5y, 7y, 10y, 20y, 30y) as clean JSON. Source: FRED DGS* series (St. Louis Fed), public domain, no key. No params - always returns the most recent published curve.",
+        "mimeType": "application/json",
+        "serviceName": "Agent402.tools",
+        "tags": [
+          "web",
+          "tools",
+          "agents",
+          "x402",
+          "data"
+        ],
+        "iconUrl": "https://agent402.tools/favicon.ico",
+        "extensions": {
+          "bazaar": {
+            "info": {
+              "input": {
+                "type": "http",
+                "method": "GET",
+                "queryParams": {}
+              },
+              "output": {
+                "type": "json",
+                "example": {
+                  "mo1": 5.42,
+                  "mo3": 5.39,
+                  "yr1": 4.91,
+                  "yr2": 4.78,
+                  "yr5": 4.45,
+                  "yr10": 4.51,
+                  "yr30": 4.68,
+                  "recordDate": "2026-06-12"
+                }
+              }
+            },
+            "schema": {
+              "type": "object",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "required": [
+                "input"
+              ],
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "method"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "http"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET"
+                      ],
+                      "type": "string"
+                    },
+                    "queryParams": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "output": {
+                  "type": "object",
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "example": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "builder-code": {
+            "info": {
+              "a": "bc_b4aw4uzd"
+            },
+            "schema": {
+              "type": "object",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "properties": {
+                "a": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,32}$",
+                  "description": "App builder code"
+                },
+                "s": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_]{1,32}$"
+                  },
+                  "description": "Service builder codes"
+                },
+                "w": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,32}$",
+                  "description": "Wallet builder code"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    ],
+    "pagination": {
+      "limit": 100,
+      "offset": 0,
+      "total": 2
+    }
+  },
+  "primev": {
+    "resources": [],
+    "total": 0,
+    "limit": 100,
+    "offset": 0
+  },
+  "near": {
+    "x402Version": 2,
+    "items": [],
+    "pagination": {
+      "limit": 100,
+      "offset": 0,
+      "total": 0
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/policy-request",
+  "title": "Policy evaluate request body",
+  "description": "SPEC §5.3. `policy` is a tx402 PolicyConfig passed through verbatim — it is validated by the SDK, not by us, so that the playground can never accept a config the SDK would reject.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policy", "challenge"],
+  "properties": {
+    "policy": { "type": "object" },
+    "challenge": { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ChallengeInput" },
+    "request": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": ["string", "null"], "maxLength": 4096 },
+        "method": { "type": ["string", "null"], "maxLength": 16 }
+      }
+    },
+    "state": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "spent_in_window_atomic": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/AtomicAmount" },
+            { "type": "null" }
+          ]
+        },
+        "spent_total_atomic": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/AtomicAmount" },
+            { "type": "null" }
+          ]
+        },
+        "window_started_at": {
+          "oneOf": [
+            { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/Timestamp" },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}

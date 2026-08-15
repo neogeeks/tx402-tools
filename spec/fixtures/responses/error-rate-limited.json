@@ -1,0 +1,11 @@
+{
+  "api_version": "v1",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "error": {
+    "code": "TARGET_RATE_LIMITED",
+    "message": "This endpoint has been probed recently. A cached result is available.",
+    "detail": { "cache_age_seconds": 92 },
+    "retryable": true,
+    "docs": "https://tools.tx402.io/errors#target_rate_limited"
+  }
+}

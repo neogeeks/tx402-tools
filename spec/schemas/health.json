@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/health",
+  "title": "Health and meta response",
+  "description": "SPEC §5.8. /health reports binding reachability; /meta reports the versions every other answer is stamped with.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "enum": ["health", "meta"] },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ok"],
+          "properties": {
+            "ok": { "type": "boolean" },
+            "bindings": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "properties": {
+                "db": { "type": ["boolean", "null"] },
+                "analytics": { "type": ["boolean", "null"] },
+                "queue": { "type": ["boolean", "null"] },
+                "limiter": { "type": ["boolean", "null"] },
+                "assets": { "type": ["boolean", "null"] }
+              }
+            },
+            "versions": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "properties": {
+                "api_version": { "type": "string" },
+                "score_version": {
+                  "oneOf": [
+                    { "$ref": "https://tools.tx402.io/api/v1/schemas/common#/$defs/ScoreVersion" },
+                    { "type": "null" }
+                  ]
+                },
+                "tx402_version": { "type": ["string", "null"] },
+                "schema_version": { "type": ["string", "null"] },
+                "environment": { "type": ["string", "null"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

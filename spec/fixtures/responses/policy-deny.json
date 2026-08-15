@@ -1,0 +1,51 @@
+{
+  "api_version": "v1",
+  "tool": "policy",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": "0.2.0",
+    "schema": "https://tools.tx402.io/api/v1/schemas/policy"
+  },
+  "warnings": [],
+  "data": {
+    "decision": "deny",
+    "selected_requirement": {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "network_recognized": true,
+      "asset": { "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "symbol": "USDC", "decimals": 6, "recognized": true },
+      "amount_atomic": "50000",
+      "amount_decimal": "0.050000",
+      "pay_to": "0x209693Bc6afc0C5328bA36FaF03C514EF312287C",
+      "pay_to_dynamic": false,
+      "max_timeout_seconds": 300,
+      "resource": "https://api.example.com/v1/geocode",
+      "mime_type": "application/json",
+      "description": "Geocode one address",
+      "facilitator": null,
+      "extra": null
+    },
+    "evaluation": [
+      { "stage": "domain", "result": "pass", "detail": "api.example.com is in allowedDomains" },
+      { "stage": "network", "result": "pass", "detail": "eip155:8453 is in allowedNetworks" },
+      { "stage": "scheme_asset", "result": "pass", "detail": "exact / USDC" },
+      { "stage": "recipient", "result": "pass", "detail": null },
+      { "stage": "per_request", "result": "fail", "detail": "0.05 USDC exceeds maxPerRequest 0.01 USDC" },
+      { "stage": "rolling_hour", "result": "skip", "detail": "not reached" },
+      { "stage": "total", "result": "skip", "detail": "not reached" },
+      { "stage": "routing", "result": "skip", "detail": "not reached" }
+    ],
+    "error": {
+      "name": "BudgetExceededError",
+      "code": "BUDGET_EXCEEDED",
+      "message": "Payment of 0.05 USDC exceeds the per-request limit of 0.01 USDC.",
+      "details": { "limit": "maxPerRequest", "limit_atomic": "10000", "requested_atomic": "50000" }
+    },
+    "tx402_version": "0.2.0",
+    "engine": "PolicyEngine"
+  }
+}

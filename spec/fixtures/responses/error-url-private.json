@@ -1,0 +1,11 @@
+{
+  "api_version": "v1",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "error": {
+    "code": "URL_PRIVATE_ADDRESS",
+    "message": "That URL cannot be probed.",
+    "detail": { "stage": "dns" },
+    "retryable": false,
+    "docs": "https://tools.tx402.io/errors#url_private_address"
+  }
+}

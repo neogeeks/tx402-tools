@@ -1,0 +1,24 @@
+{
+  "api_version": "v1",
+  "tool": "history",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": false,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": null,
+    "tx402_version": null,
+    "schema": "https://tools.tx402.io/api/v1/schemas/history"
+  },
+  "warnings": [
+    { "code": "NO_DATA", "message": "No observations of this endpoint yet." }
+  ],
+  "data": {
+    "target": { "url": null, "canonical_url": null, "endpoint_id": null, "origin": null, "host": null },
+    "window": "30d",
+    "has_data": false,
+    "coverage": { "first_seen": null, "last_seen": null, "scan_count": 0, "sampled": false },
+    "series": { "price": [], "availability": [], "latency": [] },
+    "changes": []
+  }
+}

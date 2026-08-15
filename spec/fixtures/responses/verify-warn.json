@@ -1,0 +1,61 @@
+{
+  "api_version": "v1",
+  "tool": "verify",
+  "generated_at": "2026-08-14T09:41:07Z",
+  "meta": {
+    "implemented": true,
+    "cached": false,
+    "cache_age_seconds": null,
+    "score_version": "v1",
+    "tx402_version": "0.2.0",
+    "schema": "https://tools.tx402.io/api/v1/schemas/verify"
+  },
+  "warnings": [],
+  "data": {
+    "verdict": "warn",
+    "challenge": {
+      "wire_form": "v2-header",
+      "x402_version": 2,
+      "valid": true,
+      "decode_error": null,
+      "requirement_count": 1,
+      "raw_bytes": 402,
+      "hash": "1a2b3c4d5e6f70819a2b3c4d5e6f70819a2b3c4d5e6f70819a2b3c4d5e6f7081",
+      "raw": null,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:8453",
+          "network_recognized": true,
+          "asset": { "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "symbol": "USDC", "decimals": 6, "recognized": true },
+          "amount_atomic": "2500",
+          "amount_decimal": "0.002500",
+          "pay_to": "0x9c8FF314C9Bc7F6e59A9d9225Fb22946427eDC03",
+          "pay_to_dynamic": true,
+          "max_timeout_seconds": 300,
+          "resource": "https://marketplace.example.com/v1/order/8f21",
+          "mime_type": "application/json",
+          "description": "Marketplace order settlement — per-request payout address",
+          "facilitator": null,
+          "extra": { "payToMode": "dynamic" }
+        }
+      ]
+    },
+    "checks": [
+      { "id": "wire_form_detected", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "base64_strict", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "amount_atomic_canonical", "status": "pass", "offline": true, "reason": null, "detail": null },
+      { "id": "facilitator_known", "status": "warn", "offline": true, "reason": "not_on_list", "detail": "No facilitator declared. Checked against the bundled list dated 2026-08-14." },
+      { "id": "resource_origin_match", "status": "skip", "offline": true, "reason": "no_context_url", "detail": "No context.url was supplied, so the origin could not be compared." },
+      { "id": "recipient_matches_observed", "status": "skip", "offline": false, "reason": "enrich_disabled", "detail": null }
+    ],
+    "signals": [
+      { "id": "challenge_decodes", "value": true, "observed": true, "detail": null },
+      { "id": "pay_to_declared_dynamic", "value": true, "observed": true, "detail": "Declared dynamic; a changing recipient here is a marketplace, not an anomaly." },
+      { "id": "facilitator_known", "value": false, "observed": true, "detail": null },
+      { "id": "resource_origin_match", "value": null, "observed": false, "detail": "Not determinable without context.url." }
+    ],
+    "risk": null,
+    "enrichment": null
+  }
+}

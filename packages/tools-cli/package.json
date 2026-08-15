@@ -1,0 +1,31 @@
+{
+  "name": "tx402-tools",
+  "version": "0.1.0",
+  "description": "CLI for the tx402 x402 utilities: inspect an endpoint (localhost included), verify a challenge offline, read its history, compare endpoints, replay a failed payment.",
+  "keywords": ["x402", "tx402", "402", "payments", "cli", "agents"],
+  "license": "Apache-2.0",
+  "author": "tx402",
+  "homepage": "https://tools.tx402.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neogeeks/tx402-tools.git",
+    "directory": "packages/tools-cli"
+  },
+  "bugs": { "url": "https://github.com/neogeeks/tx402-tools/issues" },
+  "type": "module",
+  "bin": { "tx402-tools": "bin/tx402-tools.mjs" },
+  "files": ["bin", "dist", "README.md"],
+  "engines": { "node": ">=20" },
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "node build.mjs",
+    "prepack": "node build.mjs"
+  },
+  "dependencies": {
+    "tx402": "^0.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

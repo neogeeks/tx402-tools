@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# There is no deploy job here, and that is deliberate: only a release
+# integrator deploys, because two sessions racing `wrangler deploy` silently
+# overwrite each other.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # ── the three global gates ──
+      # These run FIRST. A signer in the tree or a stray colour is a design
+      # violation, and there is no point spending CI minutes on tests before
+      # knowing the tree is clean.
+
+      - name: gate:no-signer
+        run: pnpm gate:no-signer
+
+      - name: gate:tokens (no colour outside ui/tokens.css)
+        run: pnpm gate:tokens
+
+      - name: schema:check (fixtures validate against spec/schemas)
+        run: pnpm schema:check
+
+      # ── the baseline every session runs locally ──
+
+      - name: lint
+        run: pnpm lint
+
+      - name: typecheck
+        run: pnpm typecheck
+
+      - name: test
+        run: pnpm test
+
+      # ── the large fixtures are generated, so they must stay reproducible ──
+
+      - name: fixtures are reproducible
+        run: |
+          node spec/fixtures/generate.mjs
+          git diff --exit-code spec/fixtures \
+            || (echo "::error::spec/fixtures is out of date — run node spec/fixtures/generate.mjs" && exit 1)
+
+      # ── the Worker must actually build ──
+
+      - name: build (wrangler dry-run)
+        run: pnpm build
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

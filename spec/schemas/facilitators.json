@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools.tx402.io/api/v1/schemas/facilitators",
+  "title": "Facilitator list response",
+  "description": "SPEC §5.8,. '✓ known facilitator' means exactly 'it is on this list'. Every row therefore carries a public, dated source, so the claim is checkable by the person it is being made at.",
+  "allOf": [
+    { "$ref": "https://tools.tx402.io/api/v1/schemas/envelope" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "facilitators" },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["facilitators", "list_version"],
+          "properties": {
+            "list_version": { "type": ["string", "null"], "maxLength": 64 },
+            "facilitators": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "name", "base_url", "status", "source_url", "source_dated"],
+                "properties": {
+                  "id": { "type": "string", "maxLength": 64 },
+                  "name": { "type": "string", "maxLength": 200 },
+                  "base_url": { "type": "string", "maxLength": 4096 },
+                  "discovery_url": { "type": ["string", "null"], "maxLength": 4096 },
+                  "operator": { "type": ["string", "null"], "maxLength": 200 },
+                  "networks": { "type": "array", "items": { "type": "string", "maxLength": 128 } },
+                  "status": { "type": "string", "enum": ["listed", "unverified", "retired"] },
+                  "source_url": { "type": "string", "maxLength": 4096 },
+                  "source_dated": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+                  "notes": { "type": ["string", "null"], "maxLength": 1000 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

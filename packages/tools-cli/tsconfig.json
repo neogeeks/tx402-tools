@@ -1,0 +1,62 @@
+{
+  // The build config for `tx402-tools`.
+  //
+  // ── Why this does not extend the root tsconfig ────────────────────────────
+  //
+  // The root config is the Worker's: `noEmit`, Workers runtime types, and
+  // `exclude: ["packages"]`. This package emits, and it targets Node ≥ 20
+  // rather than workerd — deliberately, because a developer installing the CLI
+  // must not need the Node version wrangler needs (the repo root asks for 22).
+  //
+  // ── Why rootDir is the repo root ──────────────────────────────────────────
+  //
+  // The CLI is a fourth renderer of one computation, not a fourth
+  // implementation of it (SPEC §1.2). It imports `worker/lib/probe.ts`,
+  // `worker/routes/{inspect,verify}.ts` and the `ui/pages/*/markdown.ts`
+  // mirrors, so the emitted tree has to keep those files' relative imports
+  // intact. rootDir at the repo root does that; the cost is that the entry
+  // lands at `dist/packages/tools-cli/src/cli.js`, which `bin/` knows about
+  // and nothing else needs to.
+  //
+  // No bundler. The only build tool is the TypeScript the repo already
+  // depends on, so `pnpm --filter tx402-tools build` adds no toolchain and no
+  // lockfile entry beyond `tx402` itself.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // The same pair the root config uses, and for the same reason: the files
+    // this package imports from `worker/` are written against the Workers
+    // runtime types, while `bin/` and the Node connector need `@types/node`.
+    // The web shapes both halves rely on — `Response`, `Headers`,
+    // `ReadableStream`, `AbortSignal` — are the ones undici implements, so the
+    // Workers declarations describe the Node runtime accurately enough for the
+    // seams this package actually crosses. Where they do not, `connector.ts`
+    // says so at the cast.
+    "types": ["@cloudflare/workers-types/2023-07-01", "node"],
+    "rootDir": "../..",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  // `worker/env.d.ts` declares `*.css` as text. The CLI reaches it because
+  // `worker/routes/inspect.ts` pulls in the HTML page renderer, which asks
+  // `worker/routes/assets.ts` for a hashed asset URL. The bundler drops that
+  // whole subtree — see build.mjs — but the typechecker still has to resolve
+  // the import.
+  "include": ["src/**/*.ts", "../../worker/env.d.ts"],
+  "exclude": ["dist", "node_modules"]
+}
