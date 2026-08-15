@@ -69,3 +69,22 @@ export function budgetFor(phases: CyclePhases, maxPerCycle: number): number {
   // leaves the newly-discovered endpoints to the following ticks.
   return phases.seedRefresh ? Math.floor(maxPerCycle / 2) : maxPerCycle;
 }
+
+/** A 15-minute trigger fires this many times a day. */
+export const TICKS_PER_DAY = 96;
+
+/**
+ * The most outbound probes the crawler can perform in a day.
+ *
+ * Computed rather than written down, because it is published to endpoint
+ * operators at `/crawler` as a promise about how hard we will ever hit them,
+ * and `MAX_PROBES_PER_CYCLE × 96` is not that number — exactly one tick a day
+ * is a seed refresh and gets half the budget. The difference is twenty probes,
+ * which matters not at all in cost and completely in whether the figure on the
+ * page is the figure the code enforces. docs/cost-model.md multiplies this.
+ */
+export function maxProbesPerDay(maxPerCycle: number): number {
+  const seedRefresh = budgetFor({ pump: true, sweep: false, seedRefresh: true }, maxPerCycle);
+  const ordinary = budgetFor({ pump: true, sweep: false, seedRefresh: false }, maxPerCycle);
+  return ordinary * (TICKS_PER_DAY - 1) + seedRefresh;
+}

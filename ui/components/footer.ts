@@ -65,6 +65,7 @@ export function footer(): string {
         <nav class="footer-links" aria-label="This site">
           <a href="/methodology">Methodology</a>
           <a href="/crawler">Crawler &amp; opt-out</a>
+          <a href="/privacy">Privacy</a>
           <a href="/errors">Error reference</a>
           <a href="/llms.txt">For agents</a>
           <a href="${REPO}">Source</a>

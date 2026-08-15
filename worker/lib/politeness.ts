@@ -102,6 +102,11 @@ export function resetOnDemandMemoForTests(): void {
   exhaustedUntil = 0;
 }
 
+/** The memo's expiry while it is live, or null once it has lapsed. */
+function exhaustionMemo(): number | null {
+  return Date.now() < exhaustedUntil ? exhaustedUntil : null;
+}
+
 export interface Admission {
   admitted: boolean;
   remaining: number;
@@ -204,6 +209,31 @@ export async function withPoliteness<T>(
     ...(options.noWait === undefined ? {} : { no_wait: options.noWait }),
   };
 
+  // Once this isolate knows the day's allowance is gone, refuse before touching
+  // any Durable Object at all.
+  //
+  // The ceiling bounds outbound PROBES. It does not bound REQUESTS, and a flood
+  // that keeps arriving after the budget is spent would otherwise still pay for
+  // one `reserve` — a Durable Object call and a caller-bucket row write — per
+  // request, on a limiter whose whole answer is already known. That is the one
+  // remaining place where an attacker's effort translates into our metered
+  // usage, so the short-circuit is a cost control, not a latency optimisation.
+  // See docs/cost-model.md § "The unbounded tail".
+  if (options.onDemand === true) {
+    const memo = exhaustionMemo();
+    if (memo !== null) {
+      return {
+        result: null,
+        cached: false,
+        cacheAgeSeconds: null,
+        refusal: {
+          reason: "daily_budget",
+          retryAfterSeconds: Math.max(1, Math.ceil((memo - Date.now()) / 1000)),
+        },
+      };
+    }
+  }
+
   const reservation = await call<ReserveResponse>(
     env,
     options.endpointId,
@@ -212,7 +242,16 @@ export async function withPoliteness<T>(
   );
 
   if (!reservation.allowed) {
-    if (reservation.cached_result !== null) {
+    // `!= null` rather than `!== null`, deliberately.
+    //
+    // The object's own error path answers `{allowed: false, error}` with no
+    // `cached_result` at all, and `undefined !== null` is true — so the strict
+    // comparison reported a CACHE HIT carrying `undefined`, which `scan()` then
+    // treated as a probe result because it only checks for null. A limiter
+    // failure would have surfaced as a malformed report rather than as the
+    // refusal it is. Found by a test double that answered the wrong shape,
+    // which is the only way this was ever going to show up.
+    if (reservation.cached_result != null) {
       return {
         result: reservation.cached_result as T,
         cached: true,

@@ -29,6 +29,7 @@ import { replay } from "./routes/replay.js";
 import { methodology } from "./routes/methodology.js";
 import { crawlerInfo, optout } from "./routes/crawler-info.js";
 import { errorsPage } from "./routes/errors-page.js";
+import { privacy } from "./routes/privacy.js";
 import { share } from "./routes/share.js";
 import { endpoints } from "./routes/endpoints.js";
 import { facilitators } from "./routes/facilitators.js";
@@ -57,6 +58,7 @@ export const ROUTES: Route[] = [
   { method: GET, pattern: "/methodology", meta: m("methodology"), handler: methodology },
   { method: GET, pattern: "/crawler", meta: m("crawler"), handler: crawlerInfo },
   { method: GET, pattern: "/errors", meta: m("errors"), handler: errorsPage },
+  { method: GET, pattern: "/privacy", meta: m("privacy"), handler: privacy },
   { method: GET, pattern: "/s/:id", meta: m("share"), handler: share },
 
   // ── files (no negotiation) ─────────────────────────────────────────────

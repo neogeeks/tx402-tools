@@ -402,6 +402,79 @@ describe("the whole-service daily ceiling", () => {
     expect(calls).toBe(1);
   });
 
+  it("touches no Durable Object at all once the isolate knows the day is spent", async () => {
+    // The ceiling bounds outbound PROBES, not REQUESTS. A flood that keeps
+    // arriving after the budget is gone would otherwise still pay for one
+    // `reserve` — a DO call and a caller-bucket row write — per request, on a
+    // limiter whose answer is already known. That is the last place an
+    // attacker's effort turns into our metered usage.
+    const calls: string[] = [];
+    const counting = {
+      idFromName: (name: string) => ({ toString: () => name, name }),
+      get: (id: { name: string }) => ({
+        fetch: (url: string) => {
+          const path = new URL(url).pathname;
+          calls.push(`${id.name}${path}`);
+          if (path === "/admit") {
+            return Promise.resolve(
+              Response.json({ admitted: false, remaining: 0, limit: 0, reset_at: Date.now() + 60_000 }),
+            );
+          }
+          // Leadership granted, so the caller reaches `/admit` and is refused
+          // there — which is the sequence that arms the isolate's memo.
+          return Promise.resolve(
+            Response.json({
+              allowed: path === "/reserve",
+              cached_result: null,
+              cache_age_seconds: null,
+              retry_after_seconds: null,
+              reason: "leader",
+            }),
+          );
+        },
+      }),
+    } as unknown as Env["PROBE_LIMITER"];
+    const env = envWith(counting);
+
+    // The first refusal has to ask, and pays for a reserve to find out.
+    await withPoliteness(env, { endpointId: ENDPOINT, onDemand: true, onDemandLimit: 0 }, () =>
+      Promise.resolve({ value: "no" }),
+    );
+    const afterFirst = calls.length;
+    expect(afterFirst).toBeGreaterThan(0);
+
+    // Every one after it costs nothing: no reserve, no admit, no release.
+    for (let i = 0; i < 25; i += 1) {
+      const refused = await withPoliteness(
+        env,
+        { endpointId: `${i}`.repeat(32).slice(0, 32), onDemand: true, onDemandLimit: 0 },
+        () => Promise.resolve({ value: "no" }),
+      );
+      expect(refused.refusal?.reason).toBe("daily_budget");
+    }
+    expect(calls.length).toBe(afterFirst);
+  });
+
+  it("reports a limiter failure as a refusal, not as a cache hit carrying nothing", async () => {
+    // The object's own error path answers `{allowed: false, error}` with no
+    // `cached_result`. A strict `!== null` read that shape as a cache hit and
+    // handed `undefined` back as if it were a probe result.
+    const broken = {
+      idFromName: (name: string) => ({ toString: () => name, name }),
+      get: () => ({
+        fetch: () => Promise.resolve(Response.json({ allowed: false, error: "boom" }, { status: 500 })),
+      }),
+    } as unknown as Env["PROBE_LIMITER"];
+
+    const outcome = await withPoliteness(envWith(broken), { endpointId: ENDPOINT }, () =>
+      Promise.resolve({ value: "should not run" }),
+    );
+
+    expect(outcome.result).toBeNull();
+    expect(outcome.cached).toBe(false);
+    expect(outcome.refusal).not.toBeNull();
+  });
+
   it("routes the ceiling to one object, under a name no endpoint id can spell", () => {
     // Endpoint ids are 32 lowercase hex characters (SPEC §1.5), so a collision
     // here is unrepresentable rather than merely unlikely.
