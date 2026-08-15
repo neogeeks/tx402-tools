@@ -104,6 +104,24 @@
       "expect": "n/a",
       "note": "The hostile URL table for worker/lib/guard.ts. exit criteria: every `reject` row rejected with the stated code, every `allow` row accepted."
     },
+    {
+      "file": "hostile/resolutions.json",
+      "schema": null,
+      "expect": "n/a",
+      "note": "DNS answers that change between the guard's two lookups, disagree with each other, or hide one private record among public ones. Driven by test/abuse.test.ts. None of this is decidable from a URL, which is why urls.json cannot express it."
+    },
+    {
+      "file": "hostile/redirect-chains.json",
+      "schema": null,
+      "expect": "n/a",
+      "note": "Chains whose hostile hop is the LAST one. Every redirect row in urls.json turns bad immediately, so all of them pass against a guard that validates hop 0 and lets the platform follow the rest. Driven by test/abuse.test.ts."
+    },
+    {
+      "file": "hostile/amplification.json",
+      "schema": null,
+      "expect": "n/a",
+      "note": "Volume. Every URL here is fine to fetch once and ruinous to fetch a thousand times for other people; the rows assert the number of OUTBOUND requests, which is the only number an endpoint operator cares about. Driven by test/abuse.test.ts."
+    },
 
     { "file": "responses/inspect-empty.json", "schema": "inspect", "expect": "valid", "note": "The stub shape. meta.implemented is false and the empty-corpus state is rendered as correct, not broken." },
     { "file": "responses/inspect-full.json", "schema": "inspect", "expect": "valid", "note": "A complete report on a first-seen endpoint: signals present, history absent, corpus checks skipped rather than failed." },

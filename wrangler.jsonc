@@ -131,11 +131,21 @@
     // CF_ANALYTICS_TOKEN is a Worker secret (`wrangler secret put`) and must
     // never appear in this file.
     "CF_ACCOUNT_ID": "74223469d1ec184c084925a8d120d93b",
-    // Turnstile cannot be provisioned by the OAuth token: the
-    // widget is created in the dashboard. The site key is public and lives
-    // here; TURNSTILE_SECRET_KEY is a Worker secret. Empty ⇒ Turnstile is
-    // skipped, which is correct for dev and NOT acceptable in production.
-    "TURNSTILE_SITE_KEY": ""
+    // Turnstile, on the public paste box. The site key is public — it is served
+    // in the HTML of every page that renders the box — and its companion
+    // TURNSTILE_SECRET_KEY is a Worker secret (`wrangler secret put`).
+    //
+    // Empty means Turnstile is skipped entirely, which was the state this file
+    // shipped in and which its own comment called "NOT acceptable in
+    // production". The widget is `managed`, scoped to tools.tx402.io only, and
+    // was created against the account's Turnstile API — the stored OAuth token
+    // needed a refresh to carry `challenge-widgets.write`.
+    //
+    // Local development does NOT use this key. Cloudflare publishes always-pass
+    // and always-fail test keys for that; see docs/cost-model.md § "Verifying
+    // Turnstile locally". Adding `localhost` to a production widget's domain
+    // list would let anyone farm tokens for it from a page they control.
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAEQ9QLmeX8IoA8Er"
   },
 
   "routes": [{ "pattern": "tools.tx402.io", "custom_domain": true }]

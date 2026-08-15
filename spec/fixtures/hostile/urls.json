@@ -2,7 +2,9 @@
   "description": "The hostile URL table. The requirement is that worker/lib/guard.ts rejects every `reject` row with the stated code and accepts every `allow` row. Frozen; extended (never trimmed) by red-team session.",
   "notes": [
     "The guard validates the RESOLVED addresses, not the hostname. Rows whose host is a name rather than a literal are therefore only meaningful when resolution is exercised — they are marked resolves:true and must drive them through a stubbed resolver, not a string check.",
-    "Every reject row must produce the SAME generic user-facing message. `code` is what the API returns; it is deliberately coarse so the guard cannot be used to map an internal network."
+    "Every reject row must produce the SAME generic user-facing message. `code` is what the API returns; it is deliberately coarse so the guard cannot be used to map an internal network.",
+    "This table covers what can be decided from a URL alone. Three things cannot be, and each has a table of its own in this directory: DNS answers that change or disagree (resolutions.json), redirect chains whose last hop is the hostile one (redirect-chains.json), and volume (amplification.json).",
+    "The allow rows carrying alternate encodings are as load-bearing as the reject rows. `0250.0.0.1` is octal for the genuinely public 168.0.0.1, and a guard that blocks it has decided every unusual spelling is an attack — which is over-blocking dressed up as caution."
   ],
   "cases": [
     { "id": "ok-https", "url": "https://api.example.com/v1/geocode", "expect": "allow", "code": null, "resolves": true, "note": "The baseline. If this is rejected the guard is broken." },
@@ -55,6 +57,31 @@
     { "id": "oversized-body", "url": "https://slowloris.example.net/huge", "expect": "reject", "code": "RESPONSE_TOO_LARGE", "resolves": true, "note": "Body exceeds the documented cap. The read is aborted, not buffered and then measured." },
     { "id": "slow-response", "url": "https://slowloris.example.net/slow", "expect": "reject", "code": "PROBE_TIMEOUT", "resolves": true, "note": "Trickles bytes forever. The TOTAL budget must bound this, not just the connect timeout." },
     { "id": "header-flood", "url": "https://slowloris.example.net/headers", "expect": "reject", "code": "RESPONSE_TOO_LARGE", "resolves": true, "note": "Thousands of response headers. Header count and total size are both capped." },
+
+    { "id": "meta-v6-mapped-dotted", "url": "https://[::ffff:169.254.169.254]/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "169.254.169.254 as an IPv4-mapped IPv6 literal, written with the dotted tail. A guard that classifies the v6 form without unwrapping it sees an ordinary ::ffff: address." },
+    { "id": "meta-v6-mapped-hex", "url": "https://[::ffff:a9fe:a9fe]/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The same address as the row above, with the final 32 bits written as hex groups instead of dotted-quad. Both spellings must classify identically or the check is textual." },
+    { "id": "meta-v6-6to4", "url": "https://[2002:a9fe:a9fe::]/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "6to4 embeds the v4 address in bits 16–47, nowhere near where ::ffff: puts it." },
+    { "id": "meta-v6-nat64", "url": "https://[64:ff9b::a9fe:a9fe]/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The metadata service behind the well-known NAT64 prefix." },
+    { "id": "meta-decimal", "url": "https://2852039166/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "169.254.169.254 as a single 32-bit decimal." },
+    { "id": "meta-hex", "url": "https://0xa9fea9fe/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The same, in hex." },
+    { "id": "meta-octal", "url": "https://0251.0376.0251.0376/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Four octal octets. inet_aton's grammar, which the guard parses itself rather than delegating to whichever URL implementation happens to be running." },
+    { "id": "meta-short-form", "url": "https://169.254.43518/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Three-part form: the last part absorbs the remaining 16 bits, so 43518 is 169.254." },
+    { "id": "meta-mixed-radix", "url": "https://0xa9.0xfe.0xa9.0xfe/latest/meta-data/", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Per-octet hex. Every octet may pick its own base, and a parser that checks the first one and assumes the rest match is wrong." },
+
+    { "id": "rfc1918-hex", "url": "https://0xc0a80001/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "192.168.0.1 in hex. Alternate encodings are not a loopback-only trick." },
+    { "id": "rfc1918-decimal", "url": "https://3232235777/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "192.168.1.1 as a decimal integer." },
+    { "id": "rfc1918-two-part", "url": "https://192.11010049/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "Two-part form of 192.168.0.1." },
+    { "id": "rfc1918-v6-6to4", "url": "https://[2002:c0a8:1::]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "RFC1918 space reached through 6to4." },
+    { "id": "cgnat-v6-mapped", "url": "https://[::ffff:100.64.0.1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "CGNAT is not RFC1918 and is missed by a check that only knows the three private blocks." },
+    { "id": "loopback-v6-compat", "url": "https://[::127.0.0.1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The deprecated IPv4-COMPATIBLE form (::a.b.c.d), which is a different prefix from the IPv4-MAPPED form (::ffff:a.b.c.d) and is routinely omitted." },
+    { "id": "loopback-v6-uncompressed", "url": "https://[0:0:0:0:0:ffff:7f00:1]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The same address as v6-mapped-loopback with :: expanded. Refusing one spelling and not the other means the check is on the text." },
+
+    { "id": "unspecified-bare-zero", "url": "https://0/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "A single zero is a valid one-part IPv4 address, and it is 0.0.0.0 — which routes to the local host on several stacks." },
+    { "id": "unspecified-hex-zero", "url": "https://0x0/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "The same, in hex." },
+    { "id": "unspecified-v6-mapped", "url": "https://[::ffff:0.0.0.0]/v1", "expect": "reject", "code": "URL_PRIVATE_ADDRESS", "resolves": false, "note": "0.0.0.0 mapped into IPv6." },
+
+    { "id": "ok-octal-public", "url": "https://0250.0.0.1/v1", "expect": "allow", "code": null, "resolves": false, "note": "Octal 0250 is 168, so this is the genuinely public 168.0.0.1. An unusual spelling is not by itself hostile, and refusing this row would be over-blocking." },
+    { "id": "ok-public-v6", "url": "https://[2606:4700:4700::1111]/v1", "expect": "allow", "code": null, "resolves": false, "note": "A public IPv6 literal. The v6 classifier must not treat every address it does not recognise as private." },
 
     { "id": "url-too-long", "url": "https://api.example.com/v1?q=AAAA_REPEATED_BEYOND_THE_CAP", "expect": "reject", "code": "VALIDATION_FAILED", "resolves": false, "note": "Placeholder: expands the query to exceed the 4096-char cap in spec/schemas/common.json." },
     { "id": "not-a-url", "url": "not a url at all", "expect": "reject", "code": "VALIDATION_FAILED", "resolves": false, "note": null },

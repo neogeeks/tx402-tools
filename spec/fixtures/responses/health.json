@@ -14,6 +14,11 @@
   "data": {
     "ok": true,
     "bindings": { "db": true, "analytics": true, "queue": true, "limiter": true, "assets": true },
+    "limits": {
+      "turnstile": true,
+      "on_demand_probes_remaining_today": 4873,
+      "on_demand_probes_per_day": 5000
+    },
     "versions": {
       "api_version": "v1",
       "score_version": null,

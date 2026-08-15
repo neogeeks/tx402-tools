@@ -13,11 +13,23 @@
  * a mock of it.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { ProbeLimiter } from "../worker/do/probe-limiter.js";
-import { callerKey, withPoliteness } from "../worker/lib/politeness.js";
+import { GLOBAL_BUDGET_NAME, ProbeLimiter } from "../worker/do/probe-limiter.js";
+import {
+  admitOnDemand,
+  callerKey,
+  peekOnDemandBudget,
+  resetOnDemandMemoForTests,
+  withPoliteness,
+} from "../worker/lib/politeness.js";
 import type { Env } from "../worker/types.js";
+
+// The isolate-level "budget is gone" memo is module state, so a test that
+// exhausts a budget would otherwise leak a refusal into the next one.
+beforeEach(() => {
+  resetOnDemandMemoForTests();
+});
 
 // ── an in-process stand-in for DurableObjectState.storage ─────────────────
 
@@ -243,6 +255,157 @@ describe("caller budget", () => {
     expect(refused.result).toBeNull();
     expect(refused.refusal?.reason).toBe("caller_limit");
     expect(refused.refusal?.retryAfterSeconds).toBeGreaterThan(0);
+  });
+});
+
+describe("the whole-service daily ceiling", () => {
+  /**
+   * The per-endpoint window bounds volume PER TARGET. It says nothing about one
+   * caller walking a list of a thousand different URLs, because each of those is
+   * a different object with a fresh window — which is why the cost model could
+   * not put a number on the on-demand row until this existed.
+   */
+  it("bounds distinct endpoints, which the per-target window never did", async () => {
+    const env = envWith(fakeNamespace());
+    let probes = 0;
+    const probeFn = () => {
+      probes += 1;
+      return Promise.resolve({ value: probes });
+    };
+
+    const outcomes = [];
+    for (let i = 0; i < 8; i += 1) {
+      outcomes.push(
+        // A different endpoint every time: eight fresh politeness windows, and
+        // before the ceiling existed, eight outbound probes.
+        await withPoliteness(
+          env,
+          { endpointId: String(i).repeat(32).slice(0, 32), onDemand: true, onDemandLimit: 3 },
+          probeFn,
+        ),
+      );
+    }
+
+    expect(probes).toBe(3);
+    expect(outcomes.filter((o) => o.result !== null)).toHaveLength(3);
+
+    const refused = outcomes.filter((o) => o.result === null);
+    expect(refused).toHaveLength(5);
+    for (const outcome of refused) {
+      expect(outcome.refusal?.reason).toBe("daily_budget");
+      // Retry-after points at the UTC rollover, so it is always positive and
+      // never longer than a day.
+      expect(outcome.refusal?.retryAfterSeconds).toBeGreaterThan(0);
+      expect(outcome.refusal?.retryAfterSeconds).toBeLessThanOrEqual(86_400);
+    }
+  });
+
+  it("does not charge the ceiling for a cache hit", async () => {
+    const env = envWith(fakeNamespace());
+    const probeFn = () => Promise.resolve({ value: "x" });
+
+    await withPoliteness(env, { endpointId: ENDPOINT, onDemand: true, onDemandLimit: 2 }, probeFn);
+    // Same endpoint, inside the window: served from cache, so no outbound
+    // request happened and no allowance should have been spent on it.
+    await withPoliteness(env, { endpointId: ENDPOINT, onDemand: true, onDemandLimit: 2 }, probeFn);
+    await withPoliteness(env, { endpointId: ENDPOINT, onDemand: true, onDemandLimit: 2 }, probeFn);
+
+    const budget = await peekOnDemandBudget(env);
+    expect(budget).not.toBeNull();
+    // Exactly one admission for the one probe that actually left the building.
+    expect(budget!.limit - budget!.remaining).toBe(1);
+  });
+
+  it("leaves the crawler's probes alone — the two budgets add, they do not share", async () => {
+    const env = envWith(fakeNamespace());
+    let probes = 0;
+    const probeFn = () => {
+      probes += 1;
+      return Promise.resolve({ value: probes });
+    };
+
+    for (let i = 0; i < 5; i += 1) {
+      // No `onDemand`: this is the crawler's call shape. Its ceiling is the
+      // fixed per-cycle budget in worker/crawler/schedule.ts.
+      await withPoliteness(env, { endpointId: String(i).repeat(32).slice(0, 32) }, probeFn);
+    }
+
+    expect(probes).toBe(5);
+    const budget = await peekOnDemandBudget(env);
+    expect(budget!.remaining).toBe(budget!.limit);
+  });
+
+  it("hands the lease back when it refuses, so the endpoint is not wedged", async () => {
+    const env = envWith(fakeNamespace());
+
+    const refused = await withPoliteness(
+      env,
+      { endpointId: ENDPOINT, onDemand: true, onDemandLimit: 0 },
+      () => Promise.resolve({ value: "should not run" }),
+    );
+    expect(refused.result).toBeNull();
+    expect(refused.refusal?.reason).toBe("daily_budget");
+
+    // If the lease had leaked, this caller would park on a leader that will
+    // never settle and wait out the 15-second follower timeout.
+    resetOnDemandMemoForTests();
+    const started = Date.now();
+    const after = await withPoliteness(env, { endpointId: ENDPOINT }, () =>
+      Promise.resolve({ value: "ran" }),
+    );
+    expect(after.result).toEqual({ value: "ran" });
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("fails CLOSED when the limiter cannot be reached", async () => {
+    // A limiter we cannot ask is a budget we do not know the state of, and the
+    // safe reading of "I do not know" for a free service that fetches arbitrary
+    // URLs is "no". Failing open would turn an outage into the unbounded fetch
+    // this whole mechanism exists to prevent.
+    const broken = {
+      idFromName: (name: string) => ({ toString: () => name, name }),
+      get: () => ({
+        fetch: () => Promise.reject(new Error("durable object unavailable")),
+      }),
+    } as unknown as Env["PROBE_LIMITER"];
+
+    const admission = await admitOnDemand(envWith(broken));
+    expect(admission.admitted).toBe(false);
+  });
+
+  it("refuses without re-asking the object once the isolate knows the day is spent", async () => {
+    const namespace = fakeNamespace();
+    let calls = 0;
+    const counted = {
+      idFromName: (name: string) => ({ toString: () => name, name }),
+      get: (id: { name: string }) => {
+        const stub = (namespace as unknown as Env["PROBE_LIMITER"]).get(
+          { name: id.name } as unknown as DurableObjectId,
+        );
+        return {
+          fetch: (url: string, init?: RequestInit) => {
+            if (id.name === GLOBAL_BUDGET_NAME) calls += 1;
+            return (stub as unknown as { fetch: (u: string, i?: RequestInit) => Promise<Response> })
+              .fetch(url, init);
+          },
+        };
+      },
+    } as unknown as Env["PROBE_LIMITER"];
+
+    const spent = envWith(counted);
+    await admitOnDemand(spent, { limit: 0 });
+    expect(calls).toBe(1);
+
+    // The memo answers the next twenty, so a sustained flood after exhaustion
+    // does not make one Durable Object the service's hottest single thread.
+    for (let i = 0; i < 20; i += 1) await admitOnDemand(spent, { limit: 0 });
+    expect(calls).toBe(1);
+  });
+
+  it("routes the ceiling to one object, under a name no endpoint id can spell", () => {
+    // Endpoint ids are 32 lowercase hex characters (SPEC §1.5), so a collision
+    // here is unrepresentable rather than merely unlikely.
+    expect(GLOBAL_BUDGET_NAME).not.toMatch(/^[0-9a-f]{32}$/u);
   });
 });
 

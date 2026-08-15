@@ -877,7 +877,15 @@ export async function scan(
 
   const polite = await withPoliteness(
     ctx.env,
-    { endpointId: id, ...(caller === undefined ? {} : { callerKey: caller }) },
+    {
+      endpointId: id,
+      ...(caller === undefined ? {} : { callerKey: caller }),
+      // Every probe on this path was caused by somebody outside the service, so
+      // it draws on the whole-service daily ceiling. The per-endpoint window
+      // above bounds volume per TARGET; this is the only thing that bounds the
+      // total, and without it "a thousand different URLs" was unpriced.
+      onDemand: true,
+    },
     () =>
       probe(rawUrl, {
         policy: HOSTED_URL_POLICY,
@@ -889,10 +897,16 @@ export async function scan(
 
   if (polite.result === null) {
     const refusal = polite.refusal;
+    // `daily_budget` is the service's own ceiling rather than anything about
+    // this endpoint, so it reports as RATE_LIMITED alongside the per-caller
+    // budget. Saying TARGET_RATE_LIMITED would tell the caller something untrue
+    // about the endpoint they asked about.
+    const serviceLimited =
+      refusal?.reason === "caller_limit" || refusal?.reason === "daily_budget";
     return {
       ok: false,
       failure: {
-        code: refusal?.reason === "caller_limit" ? "RATE_LIMITED" : "TARGET_RATE_LIMITED",
+        code: serviceLimited ? "RATE_LIMITED" : "TARGET_RATE_LIMITED",
         detail: null,
         retryAfterSeconds: refusal?.retryAfterSeconds ?? null,
       },

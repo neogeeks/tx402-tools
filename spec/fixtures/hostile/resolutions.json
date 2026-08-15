@@ -1,0 +1,131 @@
+{
+  "description": "DNS answers that change, disagree, or hide one bad record among good ones. urls.json can only express what is decidable from a URL; nothing here is, because every row is a hostname whose meaning depends entirely on what the resolver says and when it says it.",
+  "notes": [
+    "`answers` is indexed by lookup number: answers[0] is the first lookup for that hostname, answers[1] the second, and the LAST entry repeats for every lookup after it. worker/lib/guard.ts resolves twice per hop — once to validate, once immediately before connecting — so a row with two different entries is testing the window between those two lookups.",
+    "`connects` is the number of outbound requests the connector should see. For every reject row it is 0: refusing after connecting to the metadata service is a detection, not a defence, and a test that only checks the return code would not notice the difference.",
+    "`pins` is the address the guard told the connector to reach. It is recorded because on Cloudflare Workers the pin cannot be enforced — see the limitation note at the top of worker/lib/guard.ts — so the only checkable property is that the guard computed the right one and handed it over. The CLI's Node connector does enforce it.",
+    "The public addresses here are genuinely ROUTABLE ones, which is not a detail. The documentation ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24) are classified non-public by the guard and correctly refused, so a row that used one to stand in for 'a good address' would pass for entirely the wrong reason — and an `allow` row written that way would not be testing anything at all. Nothing here is fetched: every row runs against a stubbed resolver and a stubbed connector."
+  ],
+  "cases": [
+    {
+      "id": "rebind-second-lookup",
+      "hostname": "rebind.example.net",
+      "answers": [["93.184.216.34"], ["127.0.0.1"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "The classic rebind with a TTL short enough to flip between our two lookups. Caught on the second answer, before any connection exists."
+    },
+    {
+      "id": "rebind-to-metadata",
+      "hostname": "rebind-meta.example.net",
+      "answers": [["93.184.216.34"], ["169.254.169.254"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "The same flip aimed at the cloud metadata service rather than loopback, which is what the technique is actually used for."
+    },
+    {
+      "id": "rebind-flap-public-to-public",
+      "hostname": "flap.example.net",
+      "answers": [["93.184.216.34"], ["23.215.0.136"]],
+      "expect": "reject",
+      "code": "URL_BLOCKED",
+      "connects": 0,
+      "pins": null,
+      "note": "Both answers are public and they share no record. The guard still refuses: a name whose RRset is different every time it is asked is a name we cannot make any statement about, and admitting it would mean the address we validated is not the address anyone connects to. This is the row that makes the defence about STABILITY rather than about privateness."
+    },
+    {
+      "id": "rebind-late-flip",
+      "hostname": "late-rebind.example.net",
+      "answers": [["93.184.216.34"], ["93.184.216.34"], ["169.254.169.254"]],
+      "expect": "allow",
+      "code": null,
+      "connects": 1,
+      "pins": "93.184.216.34",
+      "note": "THE HONEST ROW. Both of the guard's lookups agree, and the flip happens on the third — which on Workers is the platform's own resolution inside `fetch`. The guard cannot see it and does not claim to: `fetch` takes a URL, not an address, and `connect` from cloudflare:sockets cannot present a normal certificate for an IP literal. So this row expects `allow`, and asserts that the guard at least PINNED the address it validated. The CLI's Node connector binds the socket to that pin and closes the window; the hosted connector carries it as an assertion it cannot enforce. Recorded as a fixture rather than a comment so that the day a platform API makes it enforceable, this row is the failing test that says so."
+    },
+    {
+      "id": "split-rrset-public-and-private",
+      "hostname": "split.example.net",
+      "answers": [["93.184.216.34", "10.0.0.5"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "One good record and one bad one in a single answer. Picking the good one is wrong: we do not choose which record the platform's connect uses."
+    },
+    {
+      "id": "split-rrset-v4-public-v6-private",
+      "hostname": "split-family.example.net",
+      "answers": [["93.184.216.34", "fd00::1"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "The private record is in the OTHER address family. A resolver that validated only the A records — or only the first record — would wave this through, and happy-eyeballs would then prefer the AAAA."
+    },
+    {
+      "id": "split-rrset-metadata-last",
+      "hostname": "split-meta.example.net",
+      "answers": [["93.184.216.34", "23.215.0.136", "169.254.169.254"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "Two good records in front of the bad one. Checking `addresses[0]` passes."
+    },
+    {
+      "id": "multi-record-all-public",
+      "hostname": "multi.example.net",
+      "answers": [["93.184.216.34", "23.215.0.136", "23.192.228.80"]],
+      "expect": "allow",
+      "code": null,
+      "connects": 1,
+      "pins": "93.184.216.34",
+      "note": "Several records, all public. Refusing a multi-record RRset outright would break every load-balanced host on the internet, so the rule is 'every record must pass', not 'there must be one record'."
+    },
+    {
+      "id": "cname-terminating-private",
+      "hostname": "cname-chain.example.net",
+      "answers": [["127.0.0.1"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "A CNAME chain is invisible here on purpose: `dohResolver` keeps only the terminal A and AAAA records, because the intermediate names do not determine where the packet goes. What matters is that the address at the end of the chain is checked, and it is."
+    },
+    {
+      "id": "unparseable-record",
+      "hostname": "garbage.example.net",
+      "answers": [["not-an-address"]],
+      "expect": "reject",
+      "code": "URL_BLOCKED",
+      "connects": 0,
+      "pins": null,
+      "note": "A record we cannot parse is a record we cannot classify, and an unclassifiable address is refused rather than assumed public."
+    },
+    {
+      "id": "empty-rrset",
+      "hostname": "nothing.example.net",
+      "answers": [[]],
+      "expect": "reject",
+      "code": "PROBE_FAILED",
+      "connects": 0,
+      "pins": null,
+      "note": "No address records at all. This is a probe failure rather than a blocked URL — the endpoint does not exist, which is a different thing from refusing to reach it, and the caller-facing message differs accordingly."
+    },
+    {
+      "id": "both-lookups-private",
+      "hostname": "internal.example.net",
+      "answers": [["10.0.0.5"]],
+      "expect": "reject",
+      "code": "URL_PRIVATE_ADDRESS",
+      "connects": 0,
+      "pins": null,
+      "note": "The straightforward case, kept so the interesting rows above are not the only coverage of it."
+    }
+  ]
+}

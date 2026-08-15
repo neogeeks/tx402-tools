@@ -26,6 +26,27 @@
                 "assets": { "type": ["boolean", "null"] }
               }
             },
+            "limits": {
+              "description": "The abuse and cost limits that are actually in force, so a reader can check docs/cost-model.md and docs/privacy.md against the running service instead of taking them on trust.",
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "properties": {
+                "turnstile": {
+                  "description": "True only when BOTH the site key and the secret are configured. A site key alone renders a widget nothing verifies.",
+                  "type": ["boolean", "null"]
+                },
+                "on_demand_probes_remaining_today": {
+                  "description": "Outbound probes the public can still cause before the UTC day rolls. Null when the limiter could not be read.",
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "on_demand_probes_per_day": {
+                  "description": "The whole-service daily ceiling on public-initiated probes.",
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                }
+              }
+            },
             "versions": {
               "type": ["object", "null"],
               "additionalProperties": false,
