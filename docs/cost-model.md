@@ -318,12 +318,49 @@ Yes. One outbound request for two hundred people, which is the property the whol
 exists to deliver.
 
 The second row is a finding in its own right, and it is the answer to "what breaks first" for a
-single abusive caller: **the per-caller budget, at 30 requests per 60 seconds**, long before the
-target window or the daily ceiling is consulted. It also means the first version of this load test
-measured nothing but the per-caller budget, because every request came from one machine and
-therefore one caller key. The scenarios that care about the collapse now send distinct
-`cf-connecting-ip` values; on the real edge that header is set by Cloudflare and cannot be spoofed
-by a client, which is what makes the budget meaningful in production and forgeable in the harness.
+single abusive caller in dev: **the per-caller budget, at 30 requests per 60 seconds**, long before
+the target window or the daily ceiling is consulted. It also means the first version of this load
+test measured nothing but the per-caller budget, because every request came from one machine and
+therefore one caller key.
+
+### The same flood against production, which behaves differently
+
+```
+200 concurrent from one caller, against tools.tx402.io
+  →  1 outbound probe · 181 served from cache · 18 × HTTP 429
+```
+
+The outbound count is the number that matters and it is 1, as designed. But **18 refusals, where
+dev produced 170.**
+
+That gap is the per-caller budget leaking, and it is leaking for a documented reason. The salt
+`callerKey` hashes with is generated per Worker isolate and never stored — that is a privacy
+property, not an oversight, because a stored salt would be a stored key to everyone's address. The
+consequence is that the same visitor hashes to a *different* caller key on every isolate they land
+on, and a burst spread across many isolates gets many separate budgets. Measured here at roughly
+**9× the nominal limit**, and the true factor depends on how the edge happens to distribute the
+burst, so it is not a constant anyone should rely on.
+
+So the per-caller budget is a speed bump, not a bound, and this is the measurement that says so
+rather than a suspicion. What actually held under this load was the per-target window (one outbound
+request for two hundred), and what would hold against the same caller naming two hundred *different*
+URLs is the daily ceiling — which is global by construction because it lives in one object rather
+than behind a per-isolate secret. That is the whole argument for adding it.
+
+### `cf-connecting-ip` cannot be spoofed, and that is checkable
+
+The harness sends distinct `cf-connecting-ip` values to simulate distinct callers, which works
+against `wrangler dev` and is refused by the real edge:
+
+```
+curl -H 'cf-connecting-ip: 198.51.100.5' https://tools.tx402.io/api/v1/health   →  403, error 1000
+curl                                     https://tools.tx402.io/api/v1/health   →  200
+```
+
+Cloudflare rejects a request carrying its own header before the Worker is invoked. That is what
+makes the per-caller budget meaningful in production at all — leaky as it is, a caller cannot simply
+choose a new key — and it is why the harness turns the header off against any base that is not
+localhost, rather than reporting a uniform wall of 403s that would look like a finding and is not.
 
 ---
 
@@ -457,6 +494,8 @@ without thinking about this page:
   total.
 - A faster probe tier, which multiplies the crawler's queue operations against the free allowance
   that is already exceeded.
+- The per-caller budget being treated as a real bound. It is not one — see the production flood
+  above — and any arithmetic that leans on it is wrong by an unknown factor.
 
 Anyone changing one of those should re-run the multiplication. It takes ten minutes, and the last
 time nobody did it, a fifteen-second timer that nobody cleared was quietly costing 219% of a

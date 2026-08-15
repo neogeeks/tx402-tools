@@ -93,9 +93,24 @@ function summarize(samples) {
  * that cares about the per-caller budget deliberately does not.
  *
  * On the real edge `cf-connecting-ip` is set by Cloudflare and cannot be spoofed
- * by a client. Locally it can, which is exactly what makes this measurable.
+ * by a client — Cloudflare rejects a request carrying one with a 403 and its
+ * error 1000, before the Worker is ever invoked. That was verified against
+ * production rather than assumed, and it is the reason the per-caller budget is
+ * meaningful there and forgeable here. `SPOOFABLE` therefore turns the header
+ * off against any base that is not localhost: sending it would turn every
+ * scenario into a uniform wall of 403s that looks like a finding and is not.
  */
+const SPOOFABLE = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/u.test(BASE);
+if (!SPOOFABLE) {
+  log(
+    `  note: ${BASE} is a real edge, which refuses a client-supplied cf-connecting-ip.\n` +
+      `        Distinct callers cannot be simulated, so every request below shares one\n` +
+      `        caller key and the per-caller budget (30/60s) is what will answer.`,
+  );
+}
+
 async function hit(url, caller = null) {
+  if (!SPOOFABLE) caller = null;
   const started = performance.now();
   try {
     const response = await fetch(url, {
