@@ -160,8 +160,9 @@ what this service charges is declared in the format a payment client already par
 - **The corpus is a few hundred endpoints**, not the whole ecosystem — the live count and the
   crawler's budget are both on [/crawler](https://tools.tx402.io/crawler). History and Compare are
   honest about gaps rather than filling them in.
-- **The links from `tx402.io` and `docs.tx402.io` back to these tools do not exist yet.** The tools
-  link out; the return path is not built.
+- **The links from `tx402.io` and `docs.tx402.io` back to these tools are written but not live.**
+  Both sites carry them in source and neither has been deployed since, so the return path exists in
+  a repository and not on the web. Two deploys, no writing.
 
 Source, including the scoring function and every weight in it:
 [github.com/neogeeks/tx402-tools](https://github.com/neogeeks/tx402-tools). Apache-2.0.
@@ -200,4 +201,4 @@ that escapes here is repeated by people who never read the methodology page.
 | "the first x402 endpoint inspector", "the only one" | "the verdict comes from the code that would refuse the payment" |
 | "free forever", "unlimited" | "free, with a 5,000/day on-demand ceiling and a published worst case" |
 | "install the CLI with `npm i tx402-tools`" | "build it from the repository; the npm name is a reserved placeholder" |
-| "cross-linked with the docs and the SDK site" | "the tools link out; the return path is not built yet" |
+| "cross-linked with the docs and the SDK site" | "the tools link out; the return links are written but not deployed yet" |
