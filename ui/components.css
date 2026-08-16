@@ -3,6 +3,17 @@
    Every rule here resolves colour through a token from tokens.css.
    There is not a single literal colour in this file and `pnpm gate:tokens`
    keeps it that way. Sessions COMPOSE these; they do not invent new ones.
+
+   ── The three ideas this file is built on ─────────────────────────
+   1. SURFACE OVER OUTLINE. Depth comes from a surface change, a
+      hairline top edge (--edge) and a shadow — not from giving every
+      element a 1px box. A page where everything is outlined has no
+      hierarchy, because an outline cannot be louder than an outline.
+   2. ONE TYPE RAMP. Sizes come from --fs-*, tracking from --tr-*.
+      A page with fourteen sizes between 12px and 17px reads as drift.
+   3. EVERY INTERACTIVE THING ANSWERS. Hover, focus-visible and :active
+      are all distinct on anything you can click, and all of them are
+      cheap transitions that `prefers-reduced-motion` switches off.
    ================================================================== */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -15,14 +26,60 @@ body {
   color: var(--text);
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
 }
 
-a { color: var(--accent); text-decoration: none; }
+/* The page's one piece of atmosphere: a single accent bloom behind the
+   masthead, fixed so it does not travel with the scroll. It is decoration
+   only — `pointer-events: none`, and the shell above it carries every
+   pixel of content. One glow, from one token; if a page wants a second
+   one the answer is no. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: 34rem;
+  background: radial-gradient(80% 100% at 50% 0%, var(--glow), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+::selection { background: var(--selection); color: var(--text); }
+
+/* Thin, themed scrollbars. The horizontal ones inside `.table-scroll` and
+   `.code pre` are part of the reading experience on this site — a default
+   chunky bar sitting under every table is the loudest thing on the page. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border: 3px solid transparent;
+  border-radius: var(--r-pill);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); background-clip: content-box; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color var(--t-fast) var(--ease);
+}
 a:hover { text-decoration: underline; }
 
-code, pre, .mono { font-family: var(--mono); }
+h1, h2, h3, h4 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+code, pre, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
 /* Inline code on this site is almost always something with no spaces in it —
    an endpoint URL, a payout address, an endpoint id, a user-agent string. Left
@@ -36,6 +93,15 @@ code, pre, .mono { font-family: var(--mono); }
 code { overflow-wrap: break-word; }
 pre code { overflow-wrap: normal; }
 
+/* Inline code gets a chip so it separates from prose without a border. Scoped
+   away from `pre code`, which is already inside its own surface. */
+:not(pre) > code {
+  padding:.12em.36em;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  font-size:.9em;
+}
+
 /* EVERY `pre` scrolls in its own box, not just the ones inside the `.code`
    component. `/crawler` writes a bare `<pre>` for the crawler's user-agent
    string and inherited nothing, so a 549px line pushed a 375px page 191px
@@ -47,6 +113,9 @@ pre {
   overscroll-behavior-x: contain;
 }
 
+/* One focus treatment for the whole site: a solid accent ring plus a soft
+   halo, so it is visible on a dark surface, on a light surface, and on top
+   of the accent itself. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -61,14 +130,18 @@ pre {
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--r);
-  z-index: 10;
+  box-shadow: var(--shadow);
+  z-index: 20;
 }
 .skip-link:focus { left: var(--s4); }
 
 /* ------------------------------ shell ------------------------------ */
 
 .shell {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -87,15 +160,16 @@ pre {
   top: 0;
   z-index: 5;
   background: var(--header-bg);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
   border-bottom: 1px solid var(--border);
 }
 
 .site-header .wrap {
   display: flex;
   align-items: center;
-  gap: var(--s5);
-  min-height: 64px;
+  gap: var(--s4);
+  min-height: 60px;
 }
 
 .brand {
@@ -103,16 +177,18 @@ pre {
   align-items: center;
   gap: var(--s2);
   font-weight: 650;
+  font-size: var(--fs-md);
   color: var(--text);
-  letter-spacing: -.01em;
+  letter-spacing: var(--tr-snug);
   white-space: nowrap;
+  border-radius: var(--r);
 }
 .brand:hover { text-decoration: none; color: var(--accent); }
 .brand .brand-sub { color: var(--text-faint); font-weight: 400; }
 /* The mark strokes with currentColor, so it follows the brand link's colour
    through hover and both themes without a second rule. */
-.brand svg { width: 22px; height: 22px; flex: none; color: var(--accent); }
-.brand:hover svg { color: inherit; }
+.brand svg { width: 22px; height: 22px; flex: none; color: var(--accent); transition: transform var(--t) var(--ease-out); }
+.brand:hover svg { color: inherit; transform: rotate(-8deg) scale(1.06); }
 
 /* The menu control is a checkbox whose `:checked` state CSS reads directly, so
    the nav is an ordinary sibling element at every width — no `<details>`, whose
@@ -123,13 +199,29 @@ pre {
 .nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s4);
+  align-items: center;
+  gap: var(--s1);
   margin-left: auto;
-  font-size: .9rem;
+  font-size: var(--fs-cap);
 }
-.nav a { color: var(--text-muted); }
-.nav a:hover, .nav a[aria-current='page'] { color: var(--text); text-decoration: none; }
-.nav a[aria-current='page'] { font-weight: 600; }
+/* Nav items are quiet targets, not links in a paragraph: a hover surface
+   rather than an underline, because six underlines appearing one after
+   another as the pointer crosses the bar is noise. */
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  padding:.4rem.7rem;
+  border-radius: var(--r);
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease);
+}
+.nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+.nav a[aria-current='page'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
 
 /* ---------------------------- theme toggle ------------------------- */
 /* Both icons are in the markup and CSS picks one, so the button is correct on
@@ -148,9 +240,11 @@ pre {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    background-color var(--t-fast) var(--ease);
 }
-.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+.theme-toggle:active { background: var(--surface-3); }
 .theme-toggle svg { width: 17px; height: 17px; }
 
 .icon-sun { display: block; }
@@ -166,32 +260,37 @@ pre {
 
 main { flex: 1; padding-block: var(--s7) var(--s8); }
 
-.page-head { margin-bottom: var(--s6); }
+.page-head { margin-bottom: var(--s6); max-width: var(--measure); }
 .page-head h1 {
-  font-size: clamp(1.7rem, 3.4vw, 2.3rem);
-  line-height: 1.2;
-  letter-spacing: -.02em;
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  font-weight: 660;
   margin: 0 0 var(--s3);
 }
 .page-head p {
   margin: 0;
   color: var(--text-muted);
-  max-width: 62ch;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-snug);
+  max-width: var(--measure-tight);
 }
 
 .site-footer {
   border-top: 1px solid var(--border);
   background: var(--bg-alt);
   color: var(--text-faint);
-  font-size: .85rem;
+  font-size: var(--fs-sm);
   padding-block: var(--s6);
+  margin-top: var(--s7);
 }
 .site-footer .wrap { display: flex; flex-wrap: wrap; gap: var(--s5); align-items: baseline; }
 .site-footer a { color: var(--text-muted); }
+.site-footer a:hover { color: var(--text); }
 .site-footer .footer-brand { display: inline-flex; align-items: center; gap: var(--s2); }
-.site-footer .brand { font-size: .9rem; }
+.site-footer .brand { font-size: var(--fs-cap); }
 .site-footer .brand svg { width: 18px; height: 18px; }
-.site-footer .footer-links { display: flex; flex-wrap: wrap; gap: var(--s4); margin-left: auto; }
+.site-footer .footer-links { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-left: auto; }
 
 /* --------------------------- disclaimer --------------------------- */
 /* a band describes the confidence of OUR OBSERVATIONS, not the
@@ -199,13 +298,15 @@ main { flex: 1; padding-block: var(--s7) var(--s8); }
    is a component so it cannot be forgotten on one page out of seven. */
 
 .observation-note {
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent-line);
+  border: 1px solid var(--accent-line);
+  border-left-width: 3px;
   background: var(--accent-soft);
   border-radius: var(--r);
   padding: var(--s3) var(--s4);
   color: var(--text-muted);
-  font-size: .875rem;
+  font-size: var(--fs-cap);
+  line-height: var(--lh-snug);
+  max-width: var(--measure);
   margin-bottom: var(--s5);
 }
 .observation-note strong { color: var(--text); font-weight: 600; }
@@ -217,11 +318,11 @@ main { flex: 1; padding-block: var(--s7) var(--s8); }
   background: var(--surface);
   border-radius: var(--r-lg);
   padding: var(--s5);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--edge);
 }
 .paste-box label {
   display: block;
-  font-size: .85rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: var(--s2);
@@ -239,17 +340,25 @@ main { flex: 1; padding-block: var(--s7) var(--s8); }
   border: 1px solid var(--border-strong);
   border-radius: var(--r);
   font-family: var(--mono);
-  font-size: .9rem;
+  font-size: var(--fs-base);
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
 }
 textarea.field {
   height: auto;
   min-height: 9rem;
   padding: var(--s3) var(--s4);
-  line-height: 1.5;
+  line-height: 1.55;
   resize: vertical;
 }
 .field::placeholder { color: var(--text-faint); }
-.field:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.field:hover { border-color: var(--border-strong); }
+/* `outline: none` is safe here only because the ring below is the same
+   affordance in a different shape — never remove one without the other. */
+.field:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring-wide);
+}
 
 .btn {
   display: inline-flex;
@@ -263,29 +372,45 @@ textarea.field {
   background: var(--btn-bg);
   color: var(--btn-fg);
   font: inherit;
+  font-size: var(--fs-base);
   font-weight: 600;
+  letter-spacing: var(--tr-snug);
+  white-space: nowrap;
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease);
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
 }
-.btn:hover { background: var(--btn-bg-hover); text-decoration: none; }
-.btn[disabled] { opacity: .55; cursor: not-allowed; }
+.btn:hover { background: var(--btn-bg-hover); text-decoration: none; box-shadow: var(--shadow); }
+/* A 1px press. Enough to feel mechanical, small enough that it never shifts
+   the row it sits in. */
+.btn:active { transform: translateY(1px); box-shadow: var(--shadow-xs); }
+.btn[disabled] { opacity:.55; cursor: not-allowed; box-shadow: none; transform: none; }
 .btn-secondary {
   background: transparent;
   color: var(--text);
   border-color: var(--border-strong);
+  box-shadow: none;
 }
-.btn-secondary:hover { background: var(--surface-2); }
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--border-strong); box-shadow: none; }
+.btn-secondary:active { background: var(--surface-3); }
 
-.hint { margin: var(--s3) 0 0; font-size: .82rem; color: var(--text-faint); }
+.hint { margin: var(--s3) 0 0; font-size: var(--fs-sm); color: var(--text-faint); }
 
 /* --------------------------- result card -------------------------- */
+/* The card is the workhorse of the site. It gets a hairline border, a top
+   edge that catches light and a shadow — in that order of importance. The
+   header and footer are separated by a rule rather than a fill, so the card
+   reads as one object with zones rather than three stacked bars. */
 
 .card {
+  position: relative;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--r-lg);
   margin-bottom: var(--s5);
   overflow: hidden;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--edge);
 }
 .card > header {
   display: flex;
@@ -294,26 +419,49 @@ textarea.field {
   flex-wrap: wrap;
   padding: var(--s4) var(--s5);
   border-bottom: 1px solid var(--border);
-  background: var(--surface-2);
+  /* `resultCard` documents `badge` as pre-rendered HTML "typically a status
+     pill", and several callers pass a bare string instead — "FAIL",
+     "18/21 passed", "refused by the decoder". A bare string in a flex
+     container is an ANONYMOUS flex item, which no selector can reach, so it
+     can only be styled by what it inherits from here. Setting the header's
+     own type to the secondary treatment means those badges read as
+     deliberate metadata beside the title rather than as body text that
+     escaped; the `h2` below takes its size back explicitly. */
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .card > header h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   font-weight: 650;
-  letter-spacing: -.01em;
+  letter-spacing: var(--tr-snug);
+  color: var(--text);
 }
-.card > header .card-aside { margin-left: auto; color: var(--text-faint); font-size: .82rem; }
+.card > header .card-aside {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
 .card > .card-body { padding: var(--s5); }
 /* The question the tool answers, sitting above the description. It is the
    H3 because it is what a searcher actually typed. */
-.card-question { margin: 0 0 var(--s2); font-size: 1.05rem; font-weight: 600; letter-spacing: -.01em; }
+.card-question {
+  margin: 0 0 var(--s2);
+  font-size: var(--fs-xl);
+  font-weight: 640;
+  letter-spacing: var(--tr-snug);
+  line-height: var(--lh-snug);
+}
 .card > .card-body > :first-child { margin-top: 0; }
 .card > .card-body > :last-child { margin-bottom: 0; }
 .card > footer {
   padding: var(--s3) var(--s5);
   border-top: 1px solid var(--border);
   background: var(--surface-2);
-  font-size: .82rem;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
   color: var(--text-faint);
 }
 
@@ -322,7 +470,7 @@ textarea.field {
 .kv {
   width: 100%;
   border-collapse: collapse;
-  font-size: .9rem;
+  font-size: var(--fs-base);
 }
 .kv th, .kv td {
   text-align: left;
@@ -331,18 +479,83 @@ textarea.field {
   border-bottom: 1px solid var(--border);
 }
 .kv tr:last-child th, .kv tr:last-child td { border-bottom: 0; }
+/* A row highlight makes a long key/value list scannable across the gap
+   between the label and its value — the one place these tables are easy to
+   misread. It is a surface change only, so nothing moves. */
+.kv tr { transition: background-color var(--t-fast) var(--ease); }
+.kv tr:hover th, .kv tr:hover td { background: var(--surface-2); }
 .kv th {
   width: 34%;
   font-weight: 500;
   color: var(--text-muted);
   white-space: nowrap;
 }
-.kv td { font-family: var(--mono); word-break: break-word; }
+.kv td { font-family: var(--mono); font-variant-numeric: tabular-nums; word-break: break-word; }
 .kv td.prose { font-family: var(--sans); }
-.kv .kv-note { display: block; font-family: var(--sans); color: var(--text-faint); font-size: .82rem; margin-top: var(--s1); }
+.kv .kv-note { display: block; font-family: var(--sans); color: var(--text-faint); font-size: var(--fs-xs); margin-top: var(--s1); }
 /* "not observed" is not the same as "false" — SPEC §6.3. It renders as
    absence, never as a value. */
 .kv td.unobserved { color: var(--text-faint); font-style: italic; font-family: var(--sans); }
+
+/* ── `.kv` used as a real data table ──────────────────────────────────────
+   `.kv` is a LABEL/VALUE table and `width: 34%` on its `th` is what makes
+   the pair read as a pair. But several pages also reach for `.kv` to get its
+   borders and rhythm on a table that is nothing of the kind — methodology's
+   five-column signal table, verify's three-column check table — and there
+   every `<th scope="col">` in the `<thead>` claimed 34% at once. The browser
+   resolves five conflicting claims by starving whatever is left, which was
+   both prose columns: "Passes when" and "Why it is worth this much" came out
+   about 70px wide, so a two-line sentence set eleven lines tall and one
+   thirteen-row table ran three screens.
+
+   A `<thead>` is precisely the signal that a table is not a label/value
+   pair, so it hands the columns back to auto layout. Keying on the markup
+   means a page gets the right treatment by being what it is, rather than by
+   remembering to ask for it.
+
+   A browser without `:has()` drops these rules and keeps today's behaviour,
+   which is why they are written as an override rather than by narrowing the
+   `.kv th` rule above. */
+
+.kv:has(thead) th { width: auto; }
+
+.kv thead th {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--text-faint);
+  white-space: nowrap;
+  border-bottom-color: var(--border-strong);
+}
+/* A row header in a data table is an identifier, not a label. It keeps the
+   body colour so the row has something to anchor on. */
+.kv:has(thead) tbody th { color: var(--text); font-weight: 500; }
+/* Auto layout still starves a prose column sitting next to four short ones.
+   These tables are all inside `.table-scroll`, so the floor costs a
+   horizontal scroll on a narrow screen rather than a broken page. */
+.kv td.prose { min-width: 15rem; }
+
+/* Verify's check table, on top of the above: the result is a pill and wants
+   no more room than the pill, the check id is a fixed-width identifier, and
+   the detail should get everything left over.
+
+   These beat `.kv th { width: 34% }` on source order, not on specificity —
+   both are (0,1,1) — so they must stay below it in the file. */
+.check-table th, .check-table td { width: auto; }
+.check-table thead th:first-child,
+.check-table tbody td:first-child { width: 1%; white-space: nowrap; }
+/* Prose, not readout: `.kv td` sets the mono face for values, and every
+   sentence in this table — the label under each check id, and the whole
+   detail column — inherited it. `<code>` keeps mono from its own rule, so
+   the id stays monospaced inside a sans cell, which is the distinction the
+   table is trying to draw in the first place. */
+.check-table tbody td:nth-child(2) { width: 30%; font-family: var(--sans); }
+.check-table tbody td:last-child { font-family: var(--sans); }
+.check-table code { font-size: var(--fs-sm); }
+/* `.hint` carries a 12px top margin for its life under a form field. Inside
+   a table cell it is a second line, not a new block. */
+.check-table .hint { margin-top: var(--s1); }
 
 /* A wide table scrolls inside its own box; the PAGE never scrolls sideways.
 
@@ -359,6 +572,11 @@ textarea.field {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+  /* Also the query container for the stacking rule at the foot of this file.
+     `container-type: inline-size` implies `contain: layout`, which makes this
+     element a containing block for absolute descendants — so it reinforces
+     the caption fix described above rather than working against it. */
+  container-type: inline-size;
 }
 
 /* ---------------------------- status pill ------------------------- */
@@ -368,30 +586,33 @@ textarea.field {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--s2);
-  padding: .15rem var(--s3);
+  gap:.4rem;
+  padding:.2rem.6rem;
   border-radius: var(--r-pill);
   border: 1px solid var(--border-strong);
   background: var(--surface-3);
   color: var(--text-muted);
-  font-size: .78rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: .01em;
+  letter-spacing:.005em;
+  line-height: 1.5;
   white-space: nowrap;
 }
 .pill::before {
   content: '';
-  width: .45rem;
-  height: .45rem;
+  width:.4rem;
+  height:.4rem;
   border-radius: 50%;
   background: currentColor;
   flex: none;
 }
-.pill-ok { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
-.pill-warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
-.pill-err { color: var(--err); background: var(--err-soft); border-color: transparent; }
+/* The tone classes trade the outline for a tinted fill plus a matching inset
+   ring, so a pill on a card and a pill on the page background weigh the same. */
+.pill-ok { color: var(--ok); background: var(--ok-soft); border-color: transparent; box-shadow: inset 0 0 0 1px var(--ok-soft); }
+.pill-warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; box-shadow: inset 0 0 0 1px var(--warn-soft); }
+.pill-err { color: var(--err); background: var(--err-soft); border-color: transparent; box-shadow: inset 0 0 0 1px var(--err-soft); }
 .pill-idle { color: var(--idle); background: var(--surface-3); }
-.pill-info { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.pill-info { color: var(--accent); background: var(--accent-soft); border-color: transparent; box-shadow: inset 0 0 0 1px var(--accent-soft); }
 
 /* ---------------------------- code block -------------------------- */
 
@@ -406,21 +627,38 @@ textarea.field {
   display: flex;
   align-items: center;
   gap: var(--s3);
-  padding: var(--s2) var(--s4);
+  padding: var(--s2) var(--s3) var(--s2) var(--s4);
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
-  font-size: .78rem;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
   color: var(--text-faint);
   font-family: var(--mono);
+  min-height: 34px;
 }
 .code > .code-head .code-copy { margin-left: auto; }
+/* The copy button lives inside a 34px strip, so it overrides the standard
+   button height rather than setting the strip's. */
+.code .code-copy {
+  height: 26px;
+  padding: 0 var(--s3);
+  font-size: var(--fs-micro);
+  font-family: var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+}
+.code .code-copy:hover { color: var(--text); }
 .code pre {
   margin: 0;
   padding: var(--s4);
   overflow-x: auto;
-  font-size: .85rem;
-  line-height: 1.55;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
   color: var(--text);
+  tab-size: 2;
 }
 
 /* ---------------------------- empty state ------------------------- */
@@ -437,20 +675,101 @@ textarea.field {
 }
 .empty h2 {
   margin: 0 0 var(--s3);
-  font-size: 1.05rem;
+  font-size: var(--fs-xl);
   font-weight: 650;
+  letter-spacing: var(--tr-snug);
   color: var(--text);
 }
 .empty p { margin: 0 auto; max-width: 52ch; }
-.empty .empty-detail { margin-top: var(--s4); font-size: .82rem; color: var(--text-faint); }
+.empty .empty-detail { margin-top: var(--s4); font-size: var(--fs-sm); color: var(--text-faint); }
 
 /* ------------------------------ misc ------------------------------ */
 
 .stack > * + * { margin-top: var(--s5); }
+
+/* The tool index. Six cards of near-identical height stacked in one column is
+   a list you scroll past; the same six in two columns is a product surface you
+   read. `.stack` still owns the single-column case, so this only has to undo
+   its `margin-top` and hand the spacing to `gap`.
+
+   `auto-fit` rather than a fixed `1fr 1fr`: at the widths where a third column
+   would fit, the cards are already short enough that three is the better
+   read, and the minmax floor keeps a card from ever being narrower than its
+   own heading. */
+.tool-grid {
+  display: grid;
+  gap: var(--s5);
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  align-items: stretch;
+  margin-bottom: var(--s5);
+}
+.tool-grid > * + * { margin-top: 0; }
+/* A grid item stretches to the row height; the card has to fill it or the
+   footer link floats mid-air in the short cards of a mixed row. */
+.tool-grid > .card { margin-bottom: 0; display: flex; flex-direction: column; }
+.tool-grid > .card > .card-body { flex: 1; display: flex; flex-direction: column; }
+/* The "Open X →" line is the card's action: it sits on the bottom edge of
+   every card in the row, not directly under text of varying length. */
+.tool-grid > .card > .card-body > p:last-child { margin-top: auto; padding-top: var(--s4); margin-bottom: 0; }
+
+/* A whole tool card is a link target in practice, so it answers the pointer
+   even though only the last line is clickable — the lift tells you which card
+   the cursor is in without pretending the card itself is a button. */
+.tool-grid > .card {
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease-out);
+}
+.tool-grid > .card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--edge-strong);
+  transform: translateY(-2px);
+}
+
+/* `.stack`'s 1.5rem gap is a gap between BLOCKS. Between the items of a
+   bulleted list it reads as ten separate paragraphs that happen to have
+   bullets, so a list gets the tighter step. */
+ul.stack > li + li, ol.stack > li + li { margin-top: var(--s3); }
+
+/* The Compare catalogue: ten category entries, each a link, a one-line
+   summary and a count. Stacked in one column at 1.5rem apart they ran the
+   height of the viewport twice over for about nine words each. Two columns
+   and a rule per entry turns the same markup into an index.
+
+   Only the TITLE is a link here, so only the title takes a hover. A tile
+   that lights up under the pointer and then does nothing when clicked is
+   worse than one that never lit up. */
+.catalogue {
+  display: grid;
+  gap: 0 var(--s6);
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+}
+.catalogue > * + * { margin-top: 0; }
+.catalogue > div {
+  padding-block: var(--s4);
+  border-top: 1px solid var(--border);
+}
+/* With two columns the first TWO entries are on the top row, and neither
+   wants a rule above it. `-n + 2` is wrong the moment the grid is one
+   column, so the single-column case restores the rule below. */
+.catalogue > div:nth-child(-n + 2) { border-top: 0; padding-top: 0; }
+.catalogue a { font-size: var(--fs-md); letter-spacing: var(--tr-snug); }
+.catalogue a strong { font-weight: 600; }
+.catalogue p { margin: var(--s2) 0 0; }
+.catalogue p:last-child {
+  margin-top: var(--s2);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+}
+
+@media (max-width: 56rem) {
+  .catalogue { grid-template-columns: 1fr; }
+  .catalogue > div:nth-child(2) { border-top: 1px solid var(--border); padding-top: var(--s4); }
+}
+
 .row-gap { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
 .muted { color: var(--text-muted); }
 .faint { color: var(--text-faint); }
-.small { font-size: .85rem; }
+.small { font-size: var(--fs-cap); }
 /* Screen-reader-only text.
 
    `clip-path` is not decoration here. With `clip` alone this element still
@@ -478,19 +797,23 @@ textarea.field {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: .001ms !important;
-    transition-duration: .001ms !important;
+    animation-duration:.001ms !important;
+    transition-duration:.001ms !important;
     scroll-behavior: auto !important;
   }
+  /* A transform that only ever runs as a transition still lands at its end
+     state instantly, which is a jump rather than a movement. Pin them. */
+  .btn:active, .brand:hover svg { transform: none !important; }
 }
 
 /* ============================== responsive ==============================
 
    Breakpoints are in `rem`, so they follow the reader's font size rather than
-   a device size. Two of them, and they are the two the SHELL needs — the pages
-   under `ui/pages/` are already mobile-first and upgrade themselves at their
-   own widths.
+   a device size. Three of them, and they are the ones the SHELL needs — the
+   pages under `ui/pages/` are already mobile-first and upgrade themselves at
+   their own widths.
 
+     ≤ 64rem  laptops and tablets — the shell tightens
      ≤ 52rem  phones and small tablets — the shell relayouts
      ≤ 34rem  small phones — the last things that still do not fit
 
@@ -503,6 +826,16 @@ textarea.field {
    turns a broken layout into a clipped one, which is the failure that does not
    also break `position: sticky` and does not hide the theme toggle offscreen. */
 html { overflow-x: hidden; }
+
+/* The nav is six items plus a brand plus a toggle. Between 52rem and 64rem it
+   fits only if the items stop carrying their full hover padding, so they lose
+   the padding before they lose the row — a wrapped nav at 60rem was the thing
+   that used to push the header to two lines on a small laptop. */
+@media (max-width: 64rem) {
+  .site-header .wrap { gap: var(--s3); }
+  .nav { font-size: var(--fs-sm); }
+  .nav a { padding:.35rem.5rem; }
+}
 
 @media (max-width: 52rem) {
   /* ── header ──────────────────────────────────────────────────────────
@@ -549,15 +882,21 @@ html { overflow-x: hidden; }
     color: var(--text-muted);
     cursor: pointer;
     list-style: none;
+    transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+      background-color var(--t-fast) var(--ease);
   }
   /* Both are needed: the pseudo-element for WebKit, `list-style` above for
      everyone else. Without them the native disclosure triangle sits beside
      the glyph. */
   .nav-toggle::-webkit-details-marker { display: none; }
   .nav-toggle::marker { content: ""; }
-  .nav-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+  .nav-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
   .nav-toggle svg { width: 20px; height: 20px; }
-  .nav-checkbox:checked + .nav-toggle { color: var(--text); border-color: var(--border-strong); }
+  .nav-checkbox:checked + .nav-toggle {
+    color: var(--accent);
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+  }
 
   /* A closed menu is closed. */
   .nav { display: none; }
@@ -572,6 +911,11 @@ html { overflow-x: hidden; }
     right: 0;
     top: 100%;
     flex-direction: column;
+    /* `.nav` centres its items so the desktop hover pills sit on the bar's
+       optical midline. In a column that same rule shrink-wraps every link to
+       its text — a 55px tap target with a 55px underline — so the panel puts
+       it back to stretch. */
+    align-items: stretch;
     gap: 0;
     margin-left: 0;
     padding: var(--s2) var(--gutter) var(--s3);
@@ -581,16 +925,25 @@ html { overflow-x: hidden; }
        the menu. A navigation surface has to be a surface. */
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    font-size: 1rem;
+    box-shadow: var(--shadow-lg);
+    font-size: var(--fs-md);
   }
+  /* The desktop hover pill becomes a full-width row: at this width the row IS
+     the target, so the padding goes to the edges and the radius goes away. */
   .nav-checkbox:checked ~ .nav a {
     display: flex;
     align-items: center;
     min-height: 44px;
+    padding: 0;
+    border-radius: 0;
     border-bottom: 1px solid var(--border);
+    background: transparent;
   }
   .nav-checkbox:checked ~ .nav a:last-child { border-bottom: 0; }
+  .nav-checkbox:checked ~ .nav a[aria-current='page'] {
+    color: var(--accent);
+    background: transparent;
+  }
 
   /* ── footer ──────────────────────────────────────────────────────────
      `margin-left: auto` on both link groups pushed them into a single
@@ -621,9 +974,14 @@ html { overflow-x: hidden; }
   .kv th, .kv td { padding: var(--s3); }
 
   main { padding-block: var(--s5) var(--s6); }
+  .site-footer { margin-top: var(--s6); }
   .page-head { margin-bottom: var(--s5); }
+  .page-head p { font-size: var(--fs-md); }
+  .card > header { padding: var(--s4); }
   .card > .card-body { padding: var(--s4); }
+  .card > footer { padding: var(--s3) var(--s4); }
   .paste-box { padding: var(--s4); }
+  .empty { padding: var(--s6) var(--s4); }
 
   /* Full-width controls: a 22rem flex basis does not fit a 375px screen, and
      a half-width submit button beside a full-width field looks like a bug. */
@@ -637,9 +995,76 @@ html { overflow-x: hidden; }
      footer. It is the product's name, not an ornament — dropping the second
      word on small screens left the site introducing itself as the SDK. */
 
-  .kv th, .kv td { font-size: .85rem; }
-  .code pre { font-size: .8rem; }
+  .kv th, .kv td { font-size: var(--fs-sm); }
+  .code pre { font-size: var(--fs-xs); }
 
   /* The card header's badge sits under the title rather than squeezing it. */
   .card > header { gap: var(--s2); }
+}
+
+/* ── key/value tables in a narrow column ──────────────────────────────────
+   A two-column table needs room for its widest value, and the widest values
+   on this site are a 42-character payout address and a full endpoint URL.
+   Given ~170px of value column — which is what the Policy page's third
+   column and any phone actually offer — `word-break: break-word` chops them
+   into stacks of four characters. So below the width where two columns can
+   work, the table stacks: label above value, one pair per row, which is the
+   definition list this data always was.
+
+   A CONTAINER query, not a media query, because the deciding width belongs
+   to the column and not to the viewport. The same table is comfortable at
+   1440px in a card and unreadable at 1440px in a 300px sidebar, and only the
+   container knows which one it is in.
+
+   The `≤ 52rem` rule above stays as the fallback: a browser without
+   container queries keeps the 38% label column it had before, which was
+   already measured not to overflow. Nothing regresses, it just stops
+   improving.
+
+   Label/value tables ONLY, on the same `<thead>` test used above. Stacking a
+   five-column data table would turn its header row into a stack of five
+   uppercase words attached to nothing; those tables keep their columns and
+   scroll inside `.table-scroll`, which is what that box is for.
+   ====================================================================== */
+
+@container (max-width: 26rem) {
+  .kv:not(:has(thead)) :is(th, td) {
+    display: block;
+    width: auto;
+    padding-inline: 0;
+  }
+  /* The label loses its rule and takes the eyebrow treatment, so the pair
+     reads as one unit rather than as two rows that happen to be adjacent. */
+  .kv:not(:has(thead)) th {
+    padding-block: var(--s3) 0;
+    border-bottom: 0;
+    font-size: var(--fs-micro);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--tr-wide);
+    color: var(--text-faint);
+  }
+  .kv:not(:has(thead)) td { padding-block: var(--s1) var(--s3); }
+  .kv:not(:has(thead)) tr:first-child th { padding-top: 0; }
+}
+
+/* ================================ print ================================
+   These pages are reports, and a report gets printed or saved to PDF. The
+   default would spend the first page on a dark background and the sticky
+   header. Chrome for print: light ground, no navigation, no shadows, and
+   cards that do not break across a page.
+   ====================================================================== */
+
+@media print {
+  body::before, .site-header, .site-footer, .skip-link, .theme-toggle { display: none !important; }
+  body { background: transparent; font-size: 11pt; }
+  main { padding-block: 0; }
+  .wrap { max-width: none; padding-inline: 0; }
+  .card, .paste-box, .empty {
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .code pre, .table-scroll { overflow: visible; }
+  a { text-decoration: underline; }
 }

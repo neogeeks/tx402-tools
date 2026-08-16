@@ -12,6 +12,23 @@
 
    Dark is the default. Light is opt-in via [data-theme='light'] and
    automatic for visitors whose system asks for it.
+
+   ── On the palette, and what a styling pass may touch ──────────────
+   The PALETTE is shared with the landing page and is the brand: every
+   --bg / --surface / --text / --accent value below is the landing
+   page's, unchanged. A styling pass refines how those colours are
+   ARRANGED — elevation, type scale, rhythm, interaction — and adds
+   tokens for the parts the landing page never needed. It does not
+   re-pick the brand. The blocks are grouped accordingly: "palette"
+   is the shared contract, "surface treatment" downward is this
+   property's own.
+
+   ── One structural constraint ──────────────────────────────────────
+   `ui/components/jsonld.ts` reads `--bg` straight out of this file to
+   emit <meta name="theme-color">, matching the `:root, :root[data-theme='dark']`
+   and `:root[data-theme='light']` blocks with a `[^}]*` body. Keep both
+   selectors written exactly as they are and keep those two blocks free
+   of nested braces, or the browser chrome silently loses its colour.
    ================================================================== */
 
 :root {
@@ -25,6 +42,7 @@
   --r-sm: 6px;
   --r: 10px;
   --r-lg: 14px;
+  --r-xl: 20px;
   --r-pill: 999px;
 
   --s1:.25rem; --s2:.5rem; --s3:.75rem; --s4: 1rem;
@@ -38,12 +56,53 @@
   --t-fast: 120ms;
   --t: 200ms;
   --ease: cubic-bezier(.4, 0,.2, 1);
+  /* Slight overshoot for things that GROW (a pill activating, a card
+     lifting). Never used on colour, where an overshoot reads as a flicker. */
+  --ease-out: cubic-bezier(.22, 1,.36, 1);
+
+  /* ── type scale ───────────────────────────────────────────────────
+     One ramp, used everywhere. Before this the pages carried about
+     fourteen ad-hoc sizes between .74rem and 1.5rem — close enough to
+     each other to look like drift rather than intent. The three top
+     steps are fluid so a headline is sized by the viewport rather than
+     by a breakpoint, and the small end is fixed because 12px that
+     shrinks is 12px nobody reads.
+
+     --fs-micro is for uppercase eyebrow labels ONLY, which carry extra
+     tracking to stay legible at that size. */
+  --fs-micro:.6875rem;
+  --fs-xs:.75rem;
+  --fs-sm:.8125rem;
+  --fs-cap:.875rem;
+  --fs-base:.9375rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.0625rem;
+  --fs-xl: clamp(1.15rem, 1.05rem +.4vw, 1.35rem);
+  --fs-2xl: clamp(1.4rem, 1.2rem + 1vw, 1.85rem);
+  --fs-3xl: clamp(1.75rem, 1.35rem + 2vw, 2.6rem);
+
+  /* Tracking. Large type needs negative tracking to stop looking loose;
+     small caps need positive tracking to stop looking cramped. */
+  --tr-tight: -.022em;
+  --tr-snug: -.012em;
+  --tr-wide:.055em;
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-body: 1.65;
+
+  /* Measure. Prose that runs the full 1200px is prose nobody finishes. */
+  --measure: 68ch;
+  --measure-tight: 60ch;
 }
 
-/* Dark (default) */
+/* ── Dark (default) ─────────────────────────────────────────────────
+   NOTE for the theme-color reader in jsonld.ts: no nested braces here. */
 :root,
 :root[data-theme='dark'] {
   color-scheme: dark;
+
+  /* palette — shared with the landing page, do not re-pick */
   --bg: #0a0c11;
   --bg-alt: #0d1018;
   --surface: #12161f;
@@ -71,13 +130,45 @@
   --idle: #6d7689;
 
   --grid-line: rgba(140, 165, 210,.055);
-  --shadow: 0 1px 2px rgba(0, 0, 0,.4), 0 16px 40px -24px rgba(0, 0, 0,.8);
   --header-bg: rgba(10, 12, 17,.78);
+
+  /* surface treatment ------------------------------------------------
+     A raised surface in a dark UI reads as raised because its TOP EDGE
+     catches light, not because it has a heavier outline. --edge is that
+     hairline; it is what lets the borders below drop to a whisper
+     without the cards going flat. */
+  --edge: rgba(255, 255, 255,.055);
+  --edge-strong: rgba(255, 255, 255,.09);
+  --surface-hover: #1a2029;
+  --overlay: rgba(6, 8, 12,.55);
+
+  /* elevation — four steps, each a tight contact shadow plus a wide
+     ambient one. A single large blur is what makes a dark UI look
+     smudged rather than layered. */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0,.35);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0,.4), 0 4px 10px -6px rgba(0, 0, 0,.6);
+  --shadow: 0 1px 2px rgba(0, 0, 0,.4), 0 16px 40px -24px rgba(0, 0, 0,.8);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0,.4), 0 28px 64px -32px rgba(0, 0, 0,.85);
+
+  /* focus + selection */
+  --ring: rgba(77, 163, 255,.4);
+  --ring-wide: rgba(77, 163, 255,.16);
+  --selection: rgba(77, 163, 255,.28);
+
+  /* The page's one piece of atmosphere: a single accent bloom behind the
+     masthead. It is a token so it cannot become seven different glows. */
+  --glow: rgba(77, 163, 255,.09);
+
+  --scrollbar: rgba(140, 165, 210,.18);
+  --scrollbar-hover: rgba(140, 165, 210,.32);
 }
 
-/* Light */
+/* ── Light ──────────────────────────────────────────────────────────
+   NOTE for the theme-color reader in jsonld.ts: no nested braces here. */
 :root[data-theme='light'] {
   color-scheme: light;
+
+  /* palette — shared with the landing page, do not re-pick */
   --bg: #fbfcfe;
   --bg-alt: #f3f6fa;
   --surface: #ffffff;
@@ -105,8 +196,29 @@
   --idle: #77839a;
 
   --grid-line: rgba(30, 60, 110,.06);
-  --shadow: 0 1px 2px rgba(15, 23, 42,.05), 0 14px 34px -22px rgba(15, 23, 42,.3);
   --header-bg: rgba(251, 252, 254,.82);
+
+  /* surface treatment — on white there is no light to catch, so the top
+     edge does nothing and the shadow does all the lifting. --edge stays
+     defined (every rule references it) but goes transparent. */
+  --edge: rgba(255, 255, 255, 0);
+  --edge-strong: rgba(255, 255, 255, 0);
+  --surface-hover: #f7f9fc;
+  --overlay: rgba(15, 23, 42,.35);
+
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42,.05);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42,.05), 0 4px 10px -6px rgba(15, 23, 42,.14);
+  --shadow: 0 1px 2px rgba(15, 23, 42,.05), 0 14px 34px -22px rgba(15, 23, 42,.3);
+  --shadow-lg: 0 2px 4px rgba(15, 23, 42,.06), 0 26px 56px -30px rgba(15, 23, 42,.34);
+
+  --ring: rgba(11, 98, 214,.38);
+  --ring-wide: rgba(11, 98, 214,.14);
+  --selection: rgba(11, 98, 214,.18);
+
+  --glow: rgba(11, 98, 214,.07);
+
+  --scrollbar: rgba(30, 60, 110,.22);
+  --scrollbar-hover: rgba(30, 60, 110,.36);
 }
 
 /* Visitors whose system asks for light and who have not chosen otherwise.
@@ -142,7 +254,25 @@
     --idle: #77839a;
 
     --grid-line: rgba(30, 60, 110,.06);
-    --shadow: 0 1px 2px rgba(15, 23, 42,.05), 0 14px 34px -22px rgba(15, 23, 42,.3);
     --header-bg: rgba(251, 252, 254,.82);
+
+    --edge: rgba(255, 255, 255, 0);
+    --edge-strong: rgba(255, 255, 255, 0);
+    --surface-hover: #f7f9fc;
+    --overlay: rgba(15, 23, 42,.35);
+
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42,.05);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42,.05), 0 4px 10px -6px rgba(15, 23, 42,.14);
+    --shadow: 0 1px 2px rgba(15, 23, 42,.05), 0 14px 34px -22px rgba(15, 23, 42,.3);
+    --shadow-lg: 0 2px 4px rgba(15, 23, 42,.06), 0 26px 56px -30px rgba(15, 23, 42,.34);
+
+    --ring: rgba(11, 98, 214,.38);
+    --ring-wide: rgba(11, 98, 214,.14);
+    --selection: rgba(11, 98, 214,.18);
+
+    --glow: rgba(11, 98, 214,.07);
+
+    --scrollbar: rgba(30, 60, 110,.22);
+    --scrollbar-hover: rgba(30, 60, 110,.36);
   }
 }

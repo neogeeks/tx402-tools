@@ -81,7 +81,7 @@ export const home: RouteHandler = (ctx: RouteContext): Response => {
       path: "/",
       body:
         pageHead(SITE.h1, `${SITE.description} ${SITE.tagline}`) +
-        html`<div class="stack">${join(cards)}</div>` +
+        html`<div class="stack tool-grid">${join(cards)}</div>` +
         resultCard({
           title: "Built for agents too",
           body:

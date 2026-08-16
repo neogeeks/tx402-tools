@@ -327,7 +327,7 @@ function categoryList(categories: CategorySummary[]): string {
 
   return resultCard({
     title: "Browse by category",
-    body: html`<div class="stack">
+    body: html`<div class="stack catalogue">
       ${join(
         published.map(
           (category) => html`<div>
