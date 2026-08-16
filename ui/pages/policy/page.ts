@@ -72,14 +72,28 @@ const STYLES = `
 .pg-strip code { font-family: var(--mono); color: var(--text); }
 
 .pg-grid { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); align-items: start; }
-/* The ladder is the point of the page (SPEC §5.3), so it gets the widest
-   column and the inputs flank it. Stacked, it goes FIRST: a verdict below a
-   two-screen form is a verdict nobody reads. */
+
+/* Stacked, the verdict goes FIRST: a verdict below a two-screen form is a
+   verdict nobody reads. In DOM order it is the second child, so it takes a
+   negative order to climb above the policy inputs.
+
+   THIS RULE MUST STAY ABOVE THE MEDIA QUERY. A media query adds no
+   specificity, so when this sat below the block it beat the "order: 0"
+   inside it at every width — and the ladder, which SPEC §5.3 makes the point
+   of the page, spent every desktop width in the 276px column while the form
+   it explains had 487px. The two rules are the same specificity and only
+   source order separates them. */
+.pg-verdict-col { order: -1; }
+
+/* Three columns: inputs, the ladder, the challenge they are evaluated
+   against. The ladder is the output and gets the widest column; the two
+   inputs flank it and are sized to their content — a column of short fields
+   on the left, a decoded challenge on the right. Wide enough that none of
+   the three has to break a hostname mid-word. */
 @media (min-width: 64rem) {
-  .pg-grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.5fr) minmax(0, .95fr); }
+  .pg-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr); }
   .pg-verdict-col { order: 0; }
 }
-.pg-verdict-col { order: -1; }
 .pg-panel {
   border: 1px solid var(--border); border-radius: var(--r-lg);
   background: var(--surface); padding: var(--s5);
@@ -96,29 +110,83 @@ const STYLES = `
 .pg-field textarea.field { min-height: 16rem; font-size: .8rem; }
 .pg-pair { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 
-.pg-verdict { border: 1px solid var(--border-strong); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
-.pg-decision { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); padding: var(--s5); border-bottom: 1px solid var(--border); }
-.pg-decision strong { font-size: 1.5rem; letter-spacing: -.02em; }
+.pg-verdict {
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface);
+  overflow: hidden; box-shadow: var(--shadow-sm), inset 0 1px 0 var(--edge);
+}
+/* The decision is the answer, so it is set as one — the word on its own
+   line at display size, the sentence under it. Side by side at 1.5rem the
+   verdict and its explanation carried the same weight, and the eye had to
+   pick. */
+.pg-decision {
+  display: grid; gap: var(--s2); padding: var(--s5);
+  border-bottom: 1px solid var(--border);
+}
+.pg-decision strong {
+  font-size: var(--fs-2xl); line-height: 1.1;
+  letter-spacing: var(--tr-wide); font-weight: 700;
+}
 .pg-decision-allow { background: var(--ok-soft); }
 .pg-decision-allow strong { color: var(--ok); }
 .pg-decision-deny { background: var(--err-soft); }
 .pg-decision-deny strong { color: var(--err); }
-.pg-decision p { margin: 0; font-size: .85rem; color: var(--text-muted); flex: 1 1 12rem; }
+.pg-decision p { margin: 0; font-size: var(--fs-cap); line-height: var(--lh-snug); color: var(--text-muted); max-width: 52ch; }
 
-.stages { list-style: none; margin: 0; padding: var(--s3) var(--s4); counter-reset: stage; }
+/* The ladder.
+
+   These are sequential stages, and each one runs only because the stage
+   above it passed — the whole point of SPEC §5.3 is the ORDER, and where in
+   that order a policy stopped. Drawn as a flat list with a coloured left
+   edge it said "here are eight items, three of them are green". Drawn as a
+   ladder — one node per stage on a connector, the node coloured by what the
+   stage did — it says "these ran in this order and this is where it
+   stopped", which is the question the page exists to answer. */
+.stages { list-style: none; margin: 0; padding: var(--s5) var(--s5) var(--s5) var(--s4); }
 .stg {
-  display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: var(--s1) var(--s3);
-  align-items: baseline; padding: var(--s3); border-left: 3px solid transparent; border-radius: var(--r-sm);
+  position: relative;
+  display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: var(--s1) var(--s3);
+  align-items: center; padding: 0 0 var(--s5) var(--s2);
 }
-.stg + .stg { margin-top: var(--s1); }
-.stg-n { font-family: var(--mono); font-size: .8rem; color: var(--text-faint); }
-.stg-name { font-weight: 600; font-size: .95rem; }
-.stg-detail { grid-column: 2 / -1; margin: 0; font-size: .84rem; color: var(--text-muted); overflow-wrap: anywhere; }
-.stg-checks { grid-column: 2 / -1; margin: 0; font-size: .76rem; color: var(--text-faint); }
-.stg-fail { background: var(--err-soft); border-left-color: var(--err); }
+.stg:last-child { padding-bottom: 0; }
+
+/* The connector is drawn per stage rather than once down the whole list, so
+   it ends at the last node instead of running past it into the padding. */
+.stg:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--s2) + .875rem);
+  top: 1.75rem;
+  bottom: 0;
+  width: 1px;
+  margin-left: -.5px;
+  background: var(--border-strong);
+}
+
+.stg-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  background: var(--surface-3); border: 1px solid var(--border-strong);
+  font-family: var(--mono); font-size: var(--fs-micro); font-weight: 600;
+  color: var(--text-faint);
+}
+.stg-name { font-weight: 600; font-size: var(--fs-base); letter-spacing: var(--tr-snug); }
+.stg-detail { grid-column: 2 / -1; margin: 0; font-size: var(--fs-sm); color: var(--text-muted); overflow-wrap: anywhere; }
+.stg-checks { grid-column: 2 / -1; margin: 0; font-size: var(--fs-xs); color: var(--text-faint); }
+
+.stg-pass .stg-n { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+.stg-fail .stg-n { background: var(--err-soft); border-color: transparent; color: var(--err); }
 .stg-fail .stg-name { color: var(--err); }
-.stg-pass { border-left-color: var(--ok); }
-.stg-skip .stg-name, .stg-skip .stg-n { color: var(--text-faint); }
+/* The tint goes on the REASON, not on the whole row. On the row it was a
+   tall block of colour whose bottom half was the gap before the next stage;
+   on the detail it marks the one sentence that says why this was refused. */
+.stg-fail .stg-detail {
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--err-soft);
+  color: var(--text);
+}
+.stg-skip .stg-n { opacity: .5; }
+.stg-skip .stg-name { color: var(--text-faint); }
 
 .pg-error { margin: 0 var(--s4) var(--s4); border: 1px solid var(--err); border-radius: var(--r); overflow: hidden; }
 .pg-error-head { padding: var(--s3) var(--s4); background: var(--err-soft); font-family: var(--mono); font-size: .82rem; color: var(--text); overflow-wrap: anywhere; }
@@ -126,15 +194,25 @@ const STYLES = `
 .pg-error-body p { margin: 0 0 var(--s2); }
 
 .pg-actions { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; margin-top: var(--s5); }
-.pg-presets { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0 0 var(--s5); padding: 0; list-style: none; }
-.pg-preset {
-  display: inline-block; padding: var(--s2) var(--s3);
-  border: 1px solid var(--border-strong); border-radius: var(--r-pill);
-  font-size: .82rem; color: var(--text); text-decoration: none;
+/* Eleven presets is a lot of pills to put above the fold, so they are set as
+   a toolbar: one surface, hairline separated from the page, with the chips
+   quiet until hovered and only the selected one carrying colour. */
+.pg-presets {
+  display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0 0 var(--s3);
+  padding: var(--s3); list-style: none;
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface-2);
 }
-.pg-preset:hover { border-color: var(--accent); text-decoration: none; }
-.pg-preset[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
-.pg-preset-blurb { margin: 0 0 var(--s4); font-size: .85rem; color: var(--text-muted); }
+.pg-preset {
+  display: inline-block; padding:.35rem var(--s3);
+  border: 1px solid transparent; border-radius: var(--r-pill);
+  font-size: var(--fs-sm); font-weight: 500; color: var(--text-muted); text-decoration: none;
+  transition: color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+.pg-preset:hover { background: var(--surface); border-color: var(--border-strong); color: var(--text); text-decoration: none; }
+.pg-preset[aria-current="true"] { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.pg-preset-blurb { margin: 0 0 var(--s5); font-size: var(--fs-cap); color: var(--text-muted); max-width: var(--measure); }
 
 .pg-offered { margin-top: var(--s5); }
 .pg-offered h3 { margin: 0 0 var(--s3); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
