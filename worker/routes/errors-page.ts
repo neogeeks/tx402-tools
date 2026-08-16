@@ -8,7 +8,25 @@
  * It renders `ERROR_CODES` and `ERROR_STATUS` directly, which means the
  * documentation cannot drift from the code that produces the errors — the
  * usual failure mode for a hand-maintained error table.
+ *
+ * ── Why the title is a sentence ────────────────────────────────────────────
+ *
+ * It used to be "Error reference", which is brand-free and therefore passed
+ * every check, but which nobody types into a search box. The rule for every
+ * other page here is that the title says what the page *does* rather than what
+ * it is called, and this page already contained its own better title in the
+ * `/llms.txt` entry pointing at it: every error code, its HTTP status, and
+ * whether retrying helps. That is the whole page in one line, and it is the
+ * line someone arriving from a `docs:` link in an error envelope is trying to
+ * confirm they have reached.
+ *
+ * It deliberately does **not** say "x402 error code". These codes are this
+ * service's, not the protocol's — `TURNSTILE_REQUIRED` and `NO_DATA` are ours —
+ * and dressing them as protocol vocabulary would buy a search term with a false
+ * claim.
  */
+
+const PAGE_TITLE = "Every error code, its HTTP status, and whether retrying helps";
 
 import { ERROR_STATUS, envelope, errorBody, html as htmlResponse, json, markdown } from "../http.js";
 import { page, pageHead } from "../../ui/components/page.js";
@@ -33,7 +51,7 @@ export const errorsPage: RouteHandler = (ctx: RouteContext): Response => {
   if (ctx.format === "markdown") {
     return markdown(
       [
-        "# Error reference",
+        `# ${PAGE_TITLE}`,
         "",
         "Every failure from every route uses one envelope. `code` comes from a closed vocabulary: adding one",
         "is a spec amendment, so a client can switch on it safely.",
@@ -51,12 +69,12 @@ export const errorsPage: RouteHandler = (ctx: RouteContext): Response => {
 
   return htmlResponse(
     page({
-      title: "Error reference",
+      title: PAGE_TITLE,
       description: "Every error code this API can return, its HTTP status, and whether retrying can help.",
       path: "/errors",
       body:
         pageHead(
-          "Error reference",
+          PAGE_TITLE,
           "One envelope for every failure, from every route. The code vocabulary is closed, so a client can switch on it safely.",
         ) +
         resultCard({

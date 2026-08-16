@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { handleRequest } from "../worker/router.js";
 import { mockCtx, mockEnv, request } from "./helpers.js";
@@ -121,6 +123,45 @@ describe("/llms.txt", () => {
     expect(text).toContain("https://docs.tx402.io/guides/lifecycle/");
     expect(text).toContain("https://docs.tx402.io/guides/policy/");
     expect(text).toContain("https://docs.tx402.io/reference/errors/");
+  });
+
+  /**
+   * Every same-origin Markdown link in the file is followed and must resolve.
+   *
+   * This exists because `/index.md` sat in this file advertising a Markdown
+   * homepage that has 404'd since the first deploy: `stripMarkdownSuffix`
+   * reduces it to `/index`, which is not a route. The identical URL in the home
+   * page's `Link: rel=alternate` header was found and fixed by a check that
+   * followed *headers*, and this copy survived it untouched — a check that
+   * follows one half of a pair does not find the other half's bug.
+   *
+   * Links only, not every URL in the file: the `## How to call any of this`
+   * block contains illustrative `?url=https://an.example/paid` calls, and
+   * following those would probe rather than test.
+   */
+  it("follows every same-origin link it publishes and never gets a 404", async () => {
+    const text = await body("/llms.txt");
+    const origin = "https://tools.tx402.io";
+
+    const paths = [...text.matchAll(/\]\((https:\/\/tools\.tx402\.io[^)\s]*)\)/gu)].map((m) =>
+      m[1]!.slice(origin.length),
+    );
+
+    // If the extraction ever silently matches nothing, the test would pass by
+    // checking zero URLs — which is the failure mode it was written to catch.
+    expect(paths.length).toBeGreaterThan(10);
+
+    for (const path of new Set(paths)) {
+      // A handful of these are static files served by the Assets binding rather
+      // than by the router, so `handleRequest` correctly 404s them here. They
+      // are checked on disk instead — the question is the same one ("is there
+      // something at the URL we published?") and skipping them silently is how
+      // this whole class of bug survived in the first place.
+      if (existsSync(join(process.cwd(), "public", path))) continue;
+
+      const res = await get(path);
+      expect(res.status, `${origin}${path} is published in /llms.txt`).toBeLessThan(400);
+    }
   });
 
   it("uses the configured origin rather than a hardcoded one", async () => {

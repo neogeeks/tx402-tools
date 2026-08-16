@@ -263,6 +263,36 @@ the request before it reaches us. **This is the one mitigation in this document 
 place.** Until it is, the honest statement is: probes are bounded, spend on probes is bounded, and
 request spend under a determined flood is bounded only by Cloudflare's per-request price.
 
+### On the plan we are actually on, the tail is not a bill
+
+Everything in this section is priced in Workers Paid overage, and this account is on Workers Free,
+where **there is no overage to buy**. So the flood above does not produce an $803 invoice. It
+produces something else, and it is worth naming rather than reading the reassuring half of that
+sentence:
+
+The Workers request allowance on Free is **100,000/day and account-wide**. A flood against
+`tools.tx402.io` spends it, and then every Worker on the account stops serving for the rest of the
+UTC day — including `tx402-landing`, which is the company's front door and has nothing to do with
+this service. **The failure mode on Free is an outage with a blast radius wider than this project,
+rather than a bill.** Whether that is better or worse than $803 is a judgement; it is certainly not
+smaller, and "we are on the free plan" is not a reason to skip the rule.
+
+**The rule is available on Free.** Cloudflare includes one rate-limiting rule on the Free zone plan:
+a 10-second counting period, a 10-second mitigation timeout, counting by IP, matching on `Path` and
+`Verified Bot`. That is narrower than what Pro buys, and it is enough for this, because the thing
+being stopped is volume from one source against one path rather than anything subtle:
+
+```
+If  Path contains "/inspect"
+    and requests from one IP exceed N in 10 seconds
+Then block for 10 seconds
+```
+
+One rule, so spend it on `/inspect` — the only path that can cause outbound work, and the one a
+flood would aim at. The daily ceiling already bounds what a flood can *cost us in probes*; this
+bounds what it costs in invocations, which is the allowance shared with everything else on the
+account.
+
 ---
 
 ## What breaks first
@@ -451,8 +481,13 @@ cannot drift from the thing it describes.
 **The crawler's side of the arithmetic:**
 
 ```bash
-curl -s https://tools.tx402.io/api/v1/crawler | jq .data.limits
+curl -s -H 'Accept: application/json' https://tools.tx402.io/crawler | jq .data.limits
 ```
+
+There is no `/api/v1/crawler`; this page is one of the four that exist only as a page, and the JSON
+comes from content negotiation on the page's own path. This command used to name a route that
+returns `NOT_FOUND`, in the section of this document whose entire purpose is that nothing above
+requires trusting it.
 
 **What actually happened, rather than what could:**
 
