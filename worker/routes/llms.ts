@@ -219,7 +219,13 @@ export const llmsTxt: RouteHandler = (ctx: RouteContext): Response => {
     "## Machine-readable surfaces",
     "",
     `- [Sitemap](${origin}/sitemap.xml)`,
-    `- [Markdown homepage](${origin}/index.md)`,
+    // `/.md`, not `/index.md`. `stripMarkdownSuffix` reduces `/index.md` to
+    // `/index`, which is not a route — the home page advertised that in its
+    // `Link: rel=alternate` header from the first deploy and it 404'd the whole
+    // time. That header was fixed; this line is the same wrong URL in the file
+    // agents actually read, and it survived because the check that found the
+    // header only followed headers.
+    `- [Markdown homepage](${origin}/.md)`,
     `- [Payment discovery manifest](${origin}/.well-known/x402.json): what this service charges, which is`,
     "  nothing — an empty `accepts`, stated in the format a payment client already parses.",
     `- [Crawler policy](${origin}/robots.txt) · [Security contact](${origin}/.well-known/security.txt)`,
