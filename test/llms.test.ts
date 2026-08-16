@@ -177,14 +177,23 @@ describe("/llms.txt", () => {
 });
 
 describe("/llms.txt claims nothing untrue", () => {
-  it("does not say the packages are installable today", async () => {
+  /**
+   * The invariant here was never "say the packages are unreleased" — it was
+   * **never advertise a command that does not work**. For as long as both names
+   * held a reserved `0.0.0` placeholder, this test asserted the install
+   * commands were absent. They are published at 0.1.0, so it asserts the
+   * opposite, and the claim it is really guarding is unchanged: what this file
+   * tells an agent to run has to actually run.
+   *
+   * If a release is ever pulled, invert this back rather than deleting it.
+   */
+  it("advertises the install commands, now that both packages resolve", async () => {
     const text = await body("/llms.txt");
-    // and O14: both names hold a reserved 0.0.0 placeholder and a
-    // real release is a human decision. `packages/tools-mcp/README.md` carries
-    // the same callout; the site has to stay consistent with it.
-    expect(text).toMatch(/not released yet|placeholder/iu);
-    expect(text).not.toMatch(/npm i(nstall)? -g tx402-tools\b/u);
-    expect(text).not.toMatch(/npx -y tx402-tools-mcp/u);
+    expect(text).toMatch(/npm i(nstall)? -g tx402-tools\b/u);
+    expect(text).toMatch(/npx -y tx402-tools-mcp/u);
+    // The placeholder era is over; leaving the old caveat in would be its own
+    // kind of wrong answer.
+    expect(text).not.toMatch(/not released yet|reserved `0\.0\.0`/iu);
   });
 
   it("says this service cannot pay, before an agent asks it to", async () => {

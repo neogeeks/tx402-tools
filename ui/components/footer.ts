@@ -37,10 +37,13 @@ import { BRAND_MARK } from "./header.js";
  *
  * ── The two packages are named, not sold ───────────────────────────────────
  *
- * `tx402-tools` and `tx402-tools-mcp` both hold a reserved `0.0.0` placeholder
- * on npm and a real release is Jayanth's call. So the footer
- * links to the source, never to `npm i`, and `packages/tools-mcp/README.md`'s
- * "not published yet" callout is the thing the site must stay consistent with.
+ * `tx402-tools` and `tx402-tools-mcp` are published at 0.1.0. The footer still
+ * links to the **source** rather than to an install command, and that is a
+ * deliberate choice rather than a leftover from the placeholder era: a footer
+ * link is navigation, and someone who wants to read what a package does before
+ * running it is better served by the directory than by `npm i`. The install
+ * commands live in `/llms.txt` and in each package's README, where the reader
+ * has already decided.
  */
 
 const REPO = "https://github.com/neogeeks/tx402-tools";

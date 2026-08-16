@@ -67,9 +67,8 @@ Check it connected with `claude mcp list`.
 
 Command `npx -y tx402-tools-mcp`, transport stdio. No arguments, no environment, no credentials.
 
-> **Not published yet.** `tx402-tools-mcp` currently exists on npm as a reserved `0.0.0` placeholder; the
-> `npx` blocks above are what will work at release. To run it from a checkout today, build it and point the
-> client at the bin:
+> **Running it from a checkout instead.** The `npx` blocks above use the published package. To run your own
+> build — which is what you want if you are changing this server — build it and point the client at the bin:
 >
 > ```bash
 > pnpm install && pnpm --filter tx402-tools-mcp build

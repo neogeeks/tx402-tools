@@ -20,12 +20,13 @@
  *
  * ── Two things this file must not get wrong ────────────────────────────────
  *
- * 1. **`tx402-tools` and `tx402-tools-mcp` are not installable today.** Both
- *    hold a reserved `0.0.0` placeholder on npm and a real release is Jayanth's
- *    call. `packages/tools-mcp/README.md` carries a callout
- *    saying exactly that; the copy below says it too. An agent that reads this
- *    file and runs `npx -y tx402-tools-mcp` today gets a placeholder, and the
- *    one thing worse than not being listed is being listed wrong.
+ * 1. **`tx402-tools` and `tx402-tools-mcp` are installable as of 0.1.0**, and
+ *    for a long time they were not — both names held a reserved `0.0.0`
+ *    placeholder, and this file said so in as many words. The invariant is not
+ *    "say they are unreleased"; it is **never advertise a command that does not
+ *    work**. An agent that reads this file and runs `npx -y tx402-tools-mcp`
+ *    must get the server, not a placeholder. If a release is ever pulled, this
+ *    copy goes back rather than staying optimistic.
  * 2. **The route list is derived, never retyped.** Titles, descriptions and
  *    intents come from `ui/tool-meta.ts` and the live flags come with them, so
  *    a tool that is not live cannot be advertised here as if it were.
@@ -143,9 +144,13 @@ export const llmsTxt: RouteHandler = (ctx: RouteContext): Response => {
   lines.push(
     "## Without a browser",
     "",
-    "Two packages put these tools where the work happens. **Neither is released yet** — both names hold",
-    "a reserved `0.0.0` placeholder on npm, so the commands below are what will work at release and not",
-    "what works today. Until then, build them from the repository.",
+    "Two packages put these tools where the work happens. Both are published, Apache-2.0, and neither",
+    "one can pay for anything: they hold no keys and construct no payment signature.",
+    "",
+    "```bash",
+    "npm i -g tx402-tools          # the CLI",
+    "npx -y tx402-tools-mcp        # the MCP server, over stdio",
+    "```",
     "",
     "- [`tx402-tools`](https://github.com/neogeeks/tx402-tools/tree/main/packages/tools-cli) — the CLI.",
     "  `inspect`, `verify`, `history`, `compare`, `replay`. It reaches `localhost` and private endpoints",
