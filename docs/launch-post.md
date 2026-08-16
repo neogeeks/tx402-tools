@@ -155,8 +155,8 @@ what this service charges is declared in the format a payment client already par
 
 ### What is not shipped
 
-- **The CLI and the MCP server are not released.** `tx402-tools` and `tx402-tools-mcp` hold reserved
-  `0.0.0` placeholders on npm. Build them from the repository; do not `npm i` them expecting a tool.
+- **The CLI and the MCP server are new.** `tx402-tools` and `tx402-tools-mcp` are published at
+  0.1.0 — a first release, not a settled one.
 - **The corpus is a few hundred endpoints**, not the whole ecosystem — the live count and the
   crawler's budget are both on [/crawler](https://tools.tx402.io/crawler). History and Compare are
   honest about gaps rather than filling them in.
@@ -199,5 +199,5 @@ that escapes here is repeated by people who never read the methodology page.
 | "the site is bot-protected" | "Turnstile covers the paste box POST; the daily ceiling is the bound" |
 | "the first x402 endpoint inspector", "the only one" | "the verdict comes from the code that would refuse the payment" |
 | "free forever", "unlimited" | "free, with a 5,000/day on-demand ceiling and a published worst case" |
-| "install the CLI with `npm i tx402-tools`" | "build it from the repository; the npm name is a reserved placeholder" |
+| "the CLI is battle-tested / stable" | "published at 0.1.0 — a first release, not a settled one" |
 | "cross-linked with the docs and the SDK site" | "the tools link out; the return path is not built yet" |
